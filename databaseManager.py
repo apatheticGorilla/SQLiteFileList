@@ -28,25 +28,7 @@ def getFileList(path):
 
 def updateDataBase(path):
 	con.execute('DELETE FROM files;')
-	for filePath in getFileList(path):
-		isFile = True
-		isNull = False
-		try:
-			extension = filePath[filePath.rindex('.'):]
-		except ValueError:
-			isFile = os.path.isfile(filePath)
-			extension = "NULL"
-			isNull = True
-		if isFile:
-			if isNull:
-				cur.execute("INSERT INTO files VALUES(NULL,'" + filePath + "'," + extension + ")")
-			else:
-				try:
-					cur.execute("INSERT INTO files VALUES(NULL,'" + filePath + "','" + extension + "')")
-				except sqlite3.OperationalError:
-					print('failed to add file: ', filePath)
-		else:
-			print("folder")
+	addToDatabase(path)
 	con.commit()
 
 
