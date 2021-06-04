@@ -1,6 +1,9 @@
 import sqlite3
 import os
 
+# TODO move database operations to separate class
+# TODO add method to add to database
+
 
 def getFileList(path):
 	files = []
@@ -49,7 +52,7 @@ def updateDataBase(path):
 
 con = sqlite3.connect('test.db')
 cur = con.cursor()
-updateDataBase("C:\\")
+# updateDataBase("C:\\")
 
 for row in cur.execute("SELECT fullPath FROM files WHERE extension='NULL';"):
-	print(row)
+	print()
