@@ -1,4 +1,5 @@
 import os
+import re
 import sqlite3
 
 con = sqlite3.connect('test.db')
@@ -10,8 +11,6 @@ def getFileList(path):
 	try:
 		items = os.listdir(path)
 	except FileNotFoundError:
-		# might be mixing folders into files
-		files.append(path)
 		return files
 	
 	for item in items:
@@ -26,10 +25,13 @@ def getFileList(path):
 	return files
 
 
-def updateDataBase(path):
-	con.execute('DELETE FROM files;')
-	addToDatabase(path)
+def updateDataBase(paths):
+	cur.execute('DELETE FROM files;')
 	con.commit()
+	for path in paths:
+		addToDatabase(path)
+	con.commit()
+	vacuum()
 
 
 def addToDatabase(path):
@@ -42,20 +44,32 @@ def addToDatabase(path):
 			isFile = os.path.isfile(filePath)
 			extension = "NULL"
 			isNull = True
+			
 		try:
 			if isFile:
+				size = os.path.getsize(filePath)
 				if isNull:
-					statement = "INSERT INTO files VALUES(NULL,'" + filePath + "', NULL)"
+					statement = "INSERT INTO files VALUES(NULL,\"" + re.escape(filePath) + "\", NULL,'" + str(size) + "')"
 					cur.execute(statement)
 				else:
 					# try\except should encapsulate all execute statements
-					cur.execute("INSERT INTO files VALUES(NULL,'" + filePath + "','" + extension + "')")
+					cur.execute(
+						"INSERT INTO files VALUES(NULL,\"" + re.escape(filePath) + "\",'" + extension + "','" + str(size) + "')")
 		except sqlite3.OperationalError:
-			print('failed to add file: ', filePath)
+			print('failed to add file: ', re.escape(filePath))
+		except FileNotFoundError:
+			print('file decided it didn\'t exist: ', filePath)
+	con.commit()
+
+
+def vacuum():
+	cur.execute("VACUUM;")
 	con.commit()
 
 
 def createDatabase():
+	cur.execute("DROP TABLE files;")
+	con.commit()
 	cur.execute('''
 		CREATE TABLE IF NOT EXISTS files(
 			file_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,11 +79,10 @@ def createDatabase():
 		);
 	''')
 	con.commit()
-	
-	
+
+
 def executeQuery(query):
-	return cur.execute(query)
-
-
-class DatabaseManager:
-	pass
+	rows = []
+	for row in cur.execute(query):
+		rows.append(row)
+	return rows

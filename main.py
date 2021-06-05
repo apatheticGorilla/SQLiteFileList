@@ -1,11 +1,9 @@
-import codecs
-import sqlite3
-import os
 import databaseManager
 
-# TODO add overload for updateDataBase that accepts a list
 # TODO add table for folders
 
-
-db = databaseManager.DatabaseManager
-
+db = databaseManager
+# db.createDatabase()
+drives = ["C:\\", "D:\\", "E:\\", "G:\\", "F:\\", "Z:\\"]
+db.updateDataBase(drives)
+print(db.executeQuery("SELECT sum(size), extension FROM files GROUP BY(extension) LIMIT 100"))
