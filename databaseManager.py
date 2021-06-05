@@ -1,5 +1,4 @@
 import os
-import re
 import sqlite3
 
 con = sqlite3.connect('test.db')
@@ -7,17 +6,16 @@ cur = con.cursor()
 
 
 def addToDatabase(path):
-	global item
 	items = os.listdir(path)
+	# print(items)
 	try:
-		
 		for item in items:
-			if os.path.isfile(os.path.join(path, item)):
-				# files.append()
-				insertRecord(os.path.join(path, item))
+			filePath = os.path.join(path, item)
+			if os.path.isfile(filePath):
+				insertRecord(filePath)
 			else:
 				try:
-					addToDatabase(os.path.join(path, item))
+					addToDatabase(filePath)
 				except PermissionError:
 					continue
 	
@@ -39,7 +37,6 @@ def updateDataBase(paths):
 
 
 def insertRecord(filePath):
-	global extension
 	isNull = False
 	try:
 		name = os.path.basename(filePath)
@@ -49,14 +46,14 @@ def insertRecord(filePath):
 	try:
 		size = os.path.getsize(filePath)
 		if isNull:
-			statement = "INSERT INTO files VALUES(NULL,\"" + re.escape(filePath) + "\", NULL,'" + str(size) + "')"
+			statement = "INSERT INTO files VALUES(NULL,\"" + filePath + "\", NULL,'" + str(size) + "')"
 			cur.execute(statement)
 		else:
 			cur.execute(
-				"INSERT INTO files VALUES(NULL,\"" + re.escape(filePath) + "\",'" + extension + "','" + str(
+				"INSERT INTO files VALUES(NULL,\"" + filePath + "\",'" + extension + "','" + str(
 					size) + "')")
 	except sqlite3.OperationalError:
-		print('failed to add file: ', re.escape(filePath))
+		print('failed to add file: ', filePath)
 	except FileNotFoundError:
 		print('file decided it didn\'t exist: ', filePath)
 

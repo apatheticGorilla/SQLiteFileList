@@ -3,7 +3,10 @@ import databaseManager
 
 db = databaseManager
 # db.createDatabase()
-drives = ["C:\\", "D:\\", "E:\\", "G:\\", "F:\\"]
-db.updateDataBase(drives)
-
-print(db.executeQuery("SELECT sum(size), extension FROM files GROUP BY(extension) ORDER BY sum(size) DESC;"))
+# , "D:\\", "E:\\", "G:\\", "F:\\"
+drives = ["C:\\"]
+# db.updateDataBase(drives)
+tuples = db.executeQuery("SELECT file_path FROM files WHERE extension IS NULL")
+for item in tuples:
+	(filePath, *rest) = item
+	print(filePath)
