@@ -6,60 +6,59 @@ con = sqlite3.connect('test.db')
 cur = con.cursor()
 
 
-def getFileList(path):
-	files = []
+def addToDatabase(path):
+	global item
+	items = os.listdir(path)
 	try:
-		items = os.listdir(path)
-	except FileNotFoundError:
-		return files
+		
+		for item in items:
+			if os.path.isfile(os.path.join(path, item)):
+				# files.append()
+				insertRecord(os.path.join(path, item))
+			else:
+				try:
+					addToDatabase(os.path.join(path, item))
+				except PermissionError:
+					continue
 	
-	for item in items:
-		if os.path.isfile(os.path.join(path, item)):
-			files.append(os.path.join(path, item))
-		else:
-			try:
-				for file in getFileList(os.path.join(path, item)):
-					files.append(file)
-			except PermissionError:
-				continue
-	return files
+	except FileNotFoundError:
+		print("file not found: ", item)
 
 
 def updateDataBase(paths):
+	print("Deleting data")
 	cur.execute('DELETE FROM files;')
 	con.commit()
 	for path in paths:
+		print("enumerating ", path)
 		addToDatabase(path)
 	con.commit()
+	print("vacuuming")
 	vacuum()
+	print("done")
 
 
-def addToDatabase(path):
-	for filePath in getFileList(path):
-		isFile = True
-		isNull = False
-		try:
-			extension = filePath[filePath.rindex('.'):]
-		except ValueError:
-			isFile = os.path.isfile(filePath)
-			extension = "NULL"
-			isNull = True
-			
-		try:
-			if isFile:
-				size = os.path.getsize(filePath)
-				if isNull:
-					statement = "INSERT INTO files VALUES(NULL,\"" + re.escape(filePath) + "\", NULL,'" + str(size) + "')"
-					cur.execute(statement)
-				else:
-					# try\except should encapsulate all execute statements
-					cur.execute(
-						"INSERT INTO files VALUES(NULL,\"" + re.escape(filePath) + "\",'" + extension + "','" + str(size) + "')")
-		except sqlite3.OperationalError:
-			print('failed to add file: ', re.escape(filePath))
-		except FileNotFoundError:
-			print('file decided it didn\'t exist: ', filePath)
-	con.commit()
+def insertRecord(filePath):
+	global extension
+	isNull = False
+	try:
+		name = os.path.basename(filePath)
+		extension = name[name.rindex('.'):]
+	except ValueError:
+		isNull = True
+	try:
+		size = os.path.getsize(filePath)
+		if isNull:
+			statement = "INSERT INTO files VALUES(NULL,\"" + re.escape(filePath) + "\", NULL,'" + str(size) + "')"
+			cur.execute(statement)
+		else:
+			cur.execute(
+				"INSERT INTO files VALUES(NULL,\"" + re.escape(filePath) + "\",'" + extension + "','" + str(
+					size) + "')")
+	except sqlite3.OperationalError:
+		print('failed to add file: ', re.escape(filePath))
+	except FileNotFoundError:
+		print('file decided it didn\'t exist: ', filePath)
 
 
 def vacuum():
