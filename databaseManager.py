@@ -1,8 +1,8 @@
 from os import listdir, path
 from sqlite3 import connect, OperationalError
 
-# TODO see if indexing before inserting data improves performance
-# TODO re-organize functions
+# todo implement multiprocessing in some form
+
 con = connect('test.db')
 cur = con.cursor()
 
@@ -39,6 +39,19 @@ def createIndex():
 	con.commit()
 
 
+def getIndexes(paths):
+	query = ""
+	for Path in paths:
+		query += '"' + Path + '",'
+	query = query[0:len(query) - 1]
+	responses = executeQuery("SELECT folder_path, folder_id FROM folders WHERE folder_path IN(" + query + ");")
+	indexes = {}
+	for response in responses:
+		(Path, index, *rest) = response
+		indexes[Path] = index
+	return indexes
+
+
 def updateDataBase(paths):
 	print("Deleting data")
 	cur.execute('DELETE FROM files;')
@@ -48,17 +61,16 @@ def updateDataBase(paths):
 	for Path in paths:
 		cur.execute("INSERT INTO folders VALUES(NULL,\"" + Path + "\", NULL)")
 		print("enumerating ", Path)
-		addToDatabase(Path)
+		addToDatabase(Path, getParentIndex(Path))
 	con.commit()
-	print("creating indexes")
-	createIndex()
+	# print("creating indexes")
+	# createIndex()
 	print("vacuuming")
 	vacuum()
 
 
-def addToDatabase(Path):
+def addToDatabase(Path, index):
 	items = listdir(Path)
-	index = getParentIndex(Path)
 	fileData = []
 	directories = []
 	dirData = []
@@ -75,10 +87,11 @@ def addToDatabase(Path):
 	writeFileData(fileData)
 	fileData.clear()
 	writeFolderData(dirData)
+	parents = getIndexes(directories)
 	dirData.clear()
 	for directory in directories:
 		try:
-			addToDatabase(directory)
+			addToDatabase(directory, parents[directory])
 		except PermissionError:
 			print("permission denied: ", directory)
 		except FileNotFoundError:
@@ -105,41 +118,10 @@ def compileFileData(filepath, parent):
 
 def writeFileData(data):
 	cur.executemany("INSERT INTO files (file_path,extension,size,parent) VALUES(?,?,?,?)", data)
-	
+
 
 def writeFolderData(data):
 	cur.executemany("INSERT INTO folders (folder_path, parent) VALUES (?,?)", data)
-	
-	
-# def insertFileRecord(filePath, parent):
-# 	global extension
-# 	isnull = False
-# 	# parent = os.path.dirname(filePath)
-# 	try:
-# 		name = path.basename(filePath)
-# 		extension = name[name.rindex('.'):]
-# 	except ValueError:
-# 		isnull = True
-# 	try:
-# 		size = path.getsize(filePath)
-# 		if isnull:
-# 			if parent is None:
-# 				cur.execute(
-# 					"INSERT INTO files VALUES(NULL,\"" + filePath + "\", NULL,'" + str(size) + "',NULL);")
-# 			else:
-# 				cur.execute(
-# 					"INSERT INTO files VALUES(NULL,\"" + filePath + "\", NULL,'" + str(size) + "',\"" + parent + "\")")
-# 		else:
-# 			if parent is None:
-# 				cur.execute(
-# 					"INSERT INTO files VALUES(NULL,\"" + filePath + "\",'" + extension + "','" + str(
-# 						size) + "',NULL);")
-# 			else:
-# 				cur.execute(
-# 					"INSERT INTO files VALUES(NULL,\"" + filePath + "\",'" + extension + "','" + str(
-# 						size) + "','" + parent + "')")
-# 	except FileNotFoundError:
-# 		print('file decided it didn\'t exist: ', filePath)
 
 
 def insertFolderRecord(Path, parent):
@@ -148,9 +130,6 @@ def insertFolderRecord(Path, parent):
 
 
 def getParentIndex(Path):
-	# print(path)
-	
-	# response = executeQuery("SELECT folder_id FROM folders WHERE folder_path = \"" + parentPath + "\";")
 	try:
 		result = cur.execute("SELECT folder_id FROM folders WHERE folder_path = '" + Path + "' LIMIT 1;")
 		for r in result:
