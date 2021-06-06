@@ -1,7 +1,7 @@
 from os import listdir, path
 from sqlite3 import connect, OperationalError
 
-# todo implement multiprocessing in some form
+# todo fuck multithreading
 
 con = connect('test.db')
 cur = con.cursor()
@@ -11,6 +11,7 @@ def createDatabase():
 	print("recreating tables")
 	cur.execute("DROP TABLE IF EXISTS files;")
 	cur.execute("DROP TABLE IF EXISTS folders;")
+	cur.execute("DROP INDEX IF EXISTS folder_path")
 	con.commit()
 	cur.execute('''
 		CREATE TABLE IF NOT EXISTS files(
@@ -35,7 +36,8 @@ def createDatabase():
 
 
 def createIndex():
-	cur.execute("CREATE INDEX folder_path ON folders(folder_id,folder_path)")
+	cur.execute("DROP INDEX IF EXISTS folder_path;")
+	cur.execute("CREATE UNIQUE INDEX folder_path ON folders(folder_path)")
 	con.commit()
 
 
@@ -56,19 +58,22 @@ def updateDataBase(paths):
 	print("Deleting data")
 	cur.execute('DELETE FROM files;')
 	cur.execute('DELETE FROM folders')
+	createIndex()
 	con.commit()
 	# createIndex()
 	for Path in paths:
 		cur.execute("INSERT INTO folders VALUES(NULL,\"" + Path + "\", NULL)")
 		print("enumerating ", Path)
-		addToDatabase(Path, getParentIndex(Path))
+		addToDatabase(Path, getIndex(Path))
 	con.commit()
-	# print("creating indexes")
+	print("creating indexes")
 	# createIndex()
+	con.commit()
 	print("vacuuming")
 	vacuum()
 
 
+# TODO find a new name for this and create a function with the same name that can be used externally without index
 def addToDatabase(Path, index):
 	items = listdir(Path)
 	fileData = []
@@ -97,6 +102,12 @@ def addToDatabase(Path, index):
 		except FileNotFoundError:
 			print("could not find:", directory)
 	directories.clear()
+
+
+def addFolder(Path):
+	cur.execute("INSERT INTO folders VALUES(NULL,\"" + Path + "\",NULL)")
+	addToDatabase(Path, getIndex(Path))
+	con.commit()
 
 
 def compileFileData(filepath, parent):
@@ -129,7 +140,7 @@ def insertFolderRecord(Path, parent):
 	cur.execute(statement)
 
 
-def getParentIndex(Path):
+def getIndex(Path):
 	try:
 		result = cur.execute("SELECT folder_id FROM folders WHERE folder_path = '" + Path + "' LIMIT 1;")
 		for r in result:

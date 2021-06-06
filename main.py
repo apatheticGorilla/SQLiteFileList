@@ -10,7 +10,7 @@ def time_convert(sec):
 	print("Time Lapsed = {0}:{1}:{2}".format(int(hours), int(mins), sec))
 
 
-# first test(no index): 0:1:48.575974225997925
+# c drive no index 0:30:19.857494592666626
 db = databaseManager
 
 # db.executeQuery("DROP INDEX folder_path")
@@ -19,6 +19,6 @@ timer.startTime()
 db.createDatabase()
 # db.createIndex()
 # , "D:\\", "E:\\", "G:\\", "F:\\"
-drives = ["C:\\"]
+drives = ["C:\\", "D:\\", "E:\\", "G:\\", "F:\\", "Z:\\"]
 db.updateDataBase(drives)
 time_convert(timer.stopTime())
