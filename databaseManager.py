@@ -1,20 +1,18 @@
 from os import listdir, path
 from sqlite3 import connect, OperationalError
 
-# todo fuck multithreading
-
-con = connect('test.db')
+con = connect('C:\\Temp\\files.db')
 cur = con.cursor()
 
 
 def createDatabase():
 	print("recreating tables")
-	cur.execute("DROP TABLE IF EXISTS files;")
-	cur.execute("DROP TABLE IF EXISTS folders;")
-	cur.execute("DROP INDEX IF EXISTS folder_path")
-	con.commit()
-	cur.execute('''
-		CREATE TABLE IF NOT EXISTS files(
+	
+	cur.executescript("""
+	DROP TABLE IF EXISTS files;
+	DROP TABLE IF EXISTS folders;
+	DROP INDEX IF EXISTS folder_path;
+	CREATE TABLE IF NOT EXISTS files(
 			file_id INTEGER PRIMARY KEY AUTOINCREMENT,
 			file_path TEXT,
 			extension TEXT,
@@ -22,22 +20,21 @@ def createDatabase():
 			parent INT,
 			FOREIGN KEY (parent) REFERENCES folders (folder_id)
 		);
-	''')
-	cur.execute('''
-	CREATE TABLE folders(
+		CREATE TABLE folders(
 		folder_id INTEGER PRIMARY KEY AUTOINCREMENT,
 		folder_path TEXT,
 		parent INT,
 		FOREIGN KEY (parent) REFERENCES folders(folder_id)
 	);
-	''')
+	CREATE UNIQUE INDEX folder_path ON folders(folder_path);
+	VACUUM;
+	""")
 	con.commit()
-	vacuum()
 
 
 def createIndex():
-	cur.execute("DROP INDEX IF EXISTS folder_path;")
-	cur.execute("CREATE UNIQUE INDEX folder_path ON folders(folder_path)")
+	cur.execute("DROP INDEX IF EXISTS extensions")
+	cur.execute("CREATE INDEX extensions ON files(extension)")
 	con.commit()
 
 
@@ -60,20 +57,17 @@ def updateDataBase(paths):
 	cur.execute('DELETE FROM folders')
 	createIndex()
 	con.commit()
-	# createIndex()
 	for Path in paths:
 		cur.execute("INSERT INTO folders VALUES(NULL,\"" + Path + "\", NULL)")
 		print("enumerating ", Path)
 		addToDatabase(Path, getIndex(Path))
 	con.commit()
-	print("creating indexes")
-	# createIndex()
+	createIndex()
 	con.commit()
 	print("vacuuming")
 	vacuum()
 
 
-# TODO find a new name for this and create a function with the same name that can be used externally without index
 def addToDatabase(Path, index):
 	items = listdir(Path)
 	fileData = []
@@ -89,11 +83,13 @@ def addToDatabase(Path, index):
 				dirData.append((filepath, index))
 		except FileNotFoundError:
 			print("file not found: ", item)
+	
 	writeFileData(fileData)
 	fileData.clear()
 	writeFolderData(dirData)
 	parents = getIndexes(directories)
 	dirData.clear()
+	
 	for directory in directories:
 		try:
 			addToDatabase(directory, parents[directory])
@@ -141,6 +137,7 @@ def insertFolderRecord(Path, parent):
 
 
 def getIndex(Path):
+	# TODO fix this garbage
 	try:
 		result = cur.execute("SELECT folder_id FROM folders WHERE folder_path = '" + Path + "' LIMIT 1;")
 		for r in result:
