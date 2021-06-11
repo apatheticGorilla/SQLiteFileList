@@ -8,17 +8,21 @@ def time_convert(sec):
 	hours = mins // 60
 	mins = mins % 60
 	print("Time Lapsed = {0}:{1}:{2}".format(int(hours), int(mins), sec))
+# 0:3:13.514529705047607
 
 
-# c drive no index 0:30:19.857494592666626
 db = databaseManager
 
-# db.executeQuery("DROP INDEX folder_path")
 timer = Timer.Timer()
 timer.startTime()
 db.createDatabase()
-# db.createIndex()
-# , "D:\\", "E:\\", "G:\\", "F:\\"
-drives = ["C:\\", "D:\\", "E:\\", "G:\\", "F:\\", "Z:\\"]
-db.updateDataBase(drives)
+# # , "D:\\", "E:\\", "G:\\", "F:\\"
+drives = ["C:\\"]
+# db.updateDataBase(drives)
+db.addFolder("C:\\")
 time_convert(timer.stopTime())
+# db.executeQuery("CREATE INDEX file_path ON files(file_path)")
+# db.executeQuery("CREATE INDEX folder_parent ON folders(parent)")
+# db.executeQuery("CREATE INDEX file_parent ON files(parent)")
+# db.executeQuery("CREATE INDEX size ON files(size)")
+

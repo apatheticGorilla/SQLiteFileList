@@ -1,13 +1,13 @@
+import os.path
 from os import listdir, path
 from sqlite3 import connect, OperationalError
 
-con = connect('C:\\Temp\\files.db')
+con = connect('c:\\Temp\\files.db')
 cur = con.cursor()
 
 
 def createDatabase():
 	print("recreating tables")
-	
 	cur.executescript("""
 	DROP TABLE IF EXISTS files;
 	DROP TABLE IF EXISTS folders;
@@ -33,8 +33,10 @@ def createDatabase():
 
 
 def createIndex():
-	cur.execute("DROP INDEX IF EXISTS extensions")
-	cur.execute("CREATE INDEX extensions ON files(extension)")
+	cur.executescript("""
+	DROP INDEX IF EXISTS extension;
+	CREATE INDEX extension ON files(extension)
+	""")
 	con.commit()
 
 
@@ -42,6 +44,7 @@ def getIndexes(paths):
 	query = ""
 	for Path in paths:
 		query += '"' + Path + '",'
+	# trim the trailing comma
 	query = query[0:len(query) - 1]
 	responses = executeQuery("SELECT folder_path, folder_id FROM folders WHERE folder_path IN(" + query + ");")
 	indexes = {}
@@ -53,9 +56,10 @@ def getIndexes(paths):
 
 def updateDataBase(paths):
 	print("Deleting data")
-	cur.execute('DELETE FROM files;')
-	cur.execute('DELETE FROM folders')
-	createIndex()
+	cur.executescript("""
+		DELETE FROM files;
+		DELETE FROM folders
+	""")
 	con.commit()
 	for Path in paths:
 		cur.execute("INSERT INTO folders VALUES(NULL,\"" + Path + "\", NULL)")
@@ -100,21 +104,12 @@ def addToDatabase(Path, index):
 	directories.clear()
 
 
-def addFolder(Path):
-	cur.execute("INSERT INTO folders VALUES(NULL,\"" + Path + "\",NULL)")
-	addToDatabase(Path, getIndex(Path))
-	con.commit()
-
-
 def compileFileData(filepath, parent):
-	isnull = False
-	size = None
+	size = 0
 	try:
 		name = path.basename(filepath)
 		extension = name[name.rindex('.'):]
 	except ValueError:
-		isnull = True
-	if isnull:
 		extension = None
 	try:
 		size = path.getsize(filepath)
@@ -130,14 +125,15 @@ def writeFileData(data):
 def writeFolderData(data):
 	cur.executemany("INSERT INTO folders (folder_path, parent) VALUES (?,?)", data)
 
-
-def insertFolderRecord(Path, parent):
-	statement = "INSERT INTO folders VALUES(NULL, \"" + Path + "\",\"" + parent + "\");"
-	cur.execute(statement)
+	
+def addFolder(Path):
+	writeFolderData([(Path, getIndex(os.path.dirname(Path)))])
+	addToDatabase(Path, getIndex(Path))
+	con.commit()
+	vacuum()
 
 
 def getIndex(Path):
-	# TODO fix this garbage
 	try:
 		result = cur.execute("SELECT folder_id FROM folders WHERE folder_path = '" + Path + "' LIMIT 1;")
 		for r in result:
@@ -146,6 +142,7 @@ def getIndex(Path):
 				return None
 			return str(ID)
 	except OperationalError:
+		print("failed to get index for", path)
 		return None
 
 
@@ -159,3 +156,9 @@ def executeQuery(query):
 	for row in cur.execute(query):
 		rows.append(row)
 	return rows
+
+
+def execute(script, commitOnCompletion):
+	cur.executescript(script)
+	if commitOnCompletion:
+		con.commit()
