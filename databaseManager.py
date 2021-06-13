@@ -40,7 +40,8 @@ def createIndex():
 	con.commit()
 
 
-def getIndexes(paths):
+def getIndexes(paths: list[str]) -> dict[str, int]:
+	
 	query = ""
 	for Path in paths:
 		query += '"' + Path + '",'
@@ -54,7 +55,7 @@ def getIndexes(paths):
 	return indexes
 
 
-def updateDataBase(paths):
+def updateDataBase(paths: list[str]):
 	print("Deleting data")
 	cur.executescript("""
 		DELETE FROM files;
@@ -72,7 +73,7 @@ def updateDataBase(paths):
 	vacuum()
 
 
-def addToDatabase(Path, index):
+def addToDatabase(Path: str, parent: (int, None)):
 	items = listdir(Path)
 	fileData = []
 	directories = []
@@ -81,10 +82,10 @@ def addToDatabase(Path, index):
 		try:
 			filepath = path.join(Path, item)
 			if path.isfile(filepath):
-				fileData.append(compileFileData(filepath, index))
+				fileData.append(compileFileData(filepath, parent))
 			else:
 				directories.append(filepath)
-				dirData.append((filepath, index))
+				dirData.append((filepath, parent))
 		except FileNotFoundError:
 			print("file not found: ", item)
 	
@@ -104,7 +105,7 @@ def addToDatabase(Path, index):
 	directories.clear()
 
 
-def compileFileData(filepath, parent):
+def compileFileData(filepath: str, parent: (int, None)) -> tuple:
 	size = 0
 	try:
 		name = path.basename(filepath)
@@ -118,22 +119,27 @@ def compileFileData(filepath, parent):
 	return filepath, extension, size, parent
 
 
-def writeFileData(data):
+def writeFileData(data: list[tuple]):
 	cur.executemany("INSERT INTO files (file_path,extension,size,parent) VALUES(?,?,?,?)", data)
 
 
-def writeFolderData(data):
+def writeFolderData(data: list[tuple]):
 	cur.executemany("INSERT INTO folders (folder_path, parent) VALUES (?,?)", data)
 
 	
-def addFolder(Path):
+def addFolder(Path: str):
 	writeFolderData([(Path, getIndex(os.path.dirname(Path)))])
 	addToDatabase(Path, getIndex(Path))
 	con.commit()
-	vacuum()
+	# vacuum()
+	
+
+def addFolders(paths: list[str]):
+	for Path in paths:
+		addFolder(Path)
 
 
-def getIndex(Path):
+def getIndex(Path: str) -> (int, None):
 	try:
 		result = cur.execute("SELECT folder_id FROM folders WHERE folder_path = '" + Path + "' LIMIT 1;")
 		for r in result:
@@ -151,14 +157,24 @@ def vacuum():
 	con.commit()
 
 
-def executeQuery(query):
+def executeQuery(query: str) -> list[tuple]:
 	rows = []
 	for row in cur.execute(query):
 		rows.append(row)
 	return rows
 
 
-def execute(script, commitOnCompletion):
+def execute(script: str, commitOnCompletion: bool):
 	cur.executescript(script)
 	if commitOnCompletion:
 		con.commit()
+		
+
+def filesWithExtension(ext: (str, None)) -> list[tuple]:
+	if ext is None:
+		return executeQuery("SELECT * FROM files WHERE extension IS NULL")
+	else:
+		return executeQuery("SELECT * FROM files WHERE extension = '" + ext + "';")
+	
+	
+# TODO method to get all files within a folder, including subfolders
