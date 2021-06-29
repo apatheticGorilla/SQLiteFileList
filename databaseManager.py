@@ -27,6 +27,7 @@ def createDatabase():
 		FOREIGN KEY (parent) REFERENCES folders(folder_id)
 	);
 	CREATE UNIQUE INDEX folder_path ON folders(folder_path);
+	CREATE INDEX size ON files(size);
 	VACUUM;
 	""")
 	con.commit()
@@ -34,14 +35,12 @@ def createDatabase():
 
 def createIndex():
 	cur.executescript("""
-	DROP INDEX IF EXISTS extension;
-	CREATE INDEX extension ON files(extension)
+	CREATE INDEX IF NOT EXISTS extension ON files(extension);
 	""")
 	con.commit()
 
 
 def getIndexes(paths: list[str]) -> dict[str, int]:
-	
 	query = ""
 	for Path in paths:
 		query += '"' + Path + '",'
@@ -65,7 +64,7 @@ def updateDataBase(paths: list[str]):
 	for Path in paths:
 		cur.execute("INSERT INTO folders VALUES(NULL,\"" + Path + "\", NULL)")
 		print("enumerating ", Path)
-		addToDatabase(Path, getIndex(Path))
+		scan(Path, getFolderIndex(Path))
 	con.commit()
 	createIndex()
 	con.commit()
@@ -73,7 +72,8 @@ def updateDataBase(paths: list[str]):
 	vacuum()
 
 
-def addToDatabase(Path: str, parent: (int, None)):
+def scan(Path: str, parent: (int, None)):
+	# TODO diagnose cause of occasional OSError
 	items = listdir(Path)
 	fileData = []
 	directories = []
@@ -97,11 +97,13 @@ def addToDatabase(Path: str, parent: (int, None)):
 	
 	for directory in directories:
 		try:
-			addToDatabase(directory, parents[directory])
+			scan(directory, parents[directory])
 		except PermissionError:
 			print("permission denied: ", directory)
 		except FileNotFoundError:
 			print("could not find:", directory)
+		except OSError:
+			print("OS error on:",directory)
 	directories.clear()
 
 
@@ -126,20 +128,19 @@ def writeFileData(data: list[tuple]):
 def writeFolderData(data: list[tuple]):
 	cur.executemany("INSERT INTO folders (folder_path, parent) VALUES (?,?)", data)
 
-	
+
 def addFolder(Path: str):
-	writeFolderData([(Path, getIndex(os.path.dirname(Path)))])
-	addToDatabase(Path, getIndex(Path))
+	writeFolderData([(Path, getFolderIndex(os.path.dirname(Path)))])
+	scan(Path, getFolderIndex(Path))
 	con.commit()
-	# vacuum()
-	
+
 
 def addFolders(paths: list[str]):
 	for Path in paths:
 		addFolder(Path)
 
 
-def getIndex(Path: str) -> (int, None):
+def getFolderIndex(Path: str) -> (int, None):
 	try:
 		result = cur.execute("SELECT folder_id FROM folders WHERE folder_path = '" + Path + "' LIMIT 1;")
 		for r in result:
@@ -168,13 +169,13 @@ def execute(script: str, commitOnCompletion: bool):
 	cur.executescript(script)
 	if commitOnCompletion:
 		con.commit()
-		
+
 
 def filesWithExtension(ext: (str, None)) -> list[tuple]:
 	if ext is None:
 		return executeQuery("SELECT * FROM files WHERE extension IS NULL")
 	else:
 		return executeQuery("SELECT * FROM files WHERE extension = '" + ext + "';")
-	
-	
-# TODO method to get all files within a folder, including subfolders
+
+
+# TODO method to get all files within a folder, including sub-folders

@@ -31,8 +31,21 @@ db = databaseManager
 # timer.startTime()
 # db.createDatabase()
 # # , "D:\\", "E:\\", "G:\\", "F:\\"
-drives = ["C:\\"]
+drives = ["C:\\", "D:\\", "G:\\", "F:\\", "z:\\"]
+
+# db.addFolder("Z:\\")
+# db.vacuum()
 # db.updateDataBase(drives)
+simpleFile = open("C:\\temp\\files.tfl", 'w', encoding="UTF-8")
+fileList = db.executeQuery("SELECT file_path FROM files WHERE size <= 4096")
+for f in fileList:
+	(line, *drop) = f
+	simpleFile.write(line + "\n")
+simpleFile.close()
 # db.addFolder("C:\\")
 # time_convert(timer.stopTime())
-# db.executeQuery("CREATE INDEX size ON files(size)")
+# files = db.executeQuery("SELECT * FROM files")
+# files = db.filesWithExtension(".ttf")
+# exportTOCSV("file_id,path,extension,size,parent", "C:\\Temp\\all.csv", files)
+
+
