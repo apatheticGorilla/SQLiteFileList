@@ -15,10 +15,11 @@ def time_convert(sec):
 
 db = databaseManager
 
-db.createDatabase()
-drives = ["C:\\", "D:\\", "G:\\", "F:\\", "Z:\\"]
-db.updateDataBase(drives)
-# util.pieChartByExtension(1000)
+
+def rebuildDatabase(folders):
+	db.createDatabase()
+	db.updateDataBase(folders)
+
 
 # print(db.executeQuery("SELECT COUNT(file_id) FROM files WHERE extension IS NULL"))
 util.writeTFLList("C:\\temp\\files2.tfl", "extension = '.mp4'")
