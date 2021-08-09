@@ -41,11 +41,7 @@ def createIndex():
 
 
 def getIndexes(paths: list[str]) -> dict[str, int]:
-	query = ""
-	for Path in paths:
-		query += '"' + Path + '",'
-	# trim the trailing comma
-	query = query[0:len(query) - 1]
+	query = formatInQuery(paths)
 	responses = executeQuery("SELECT folder_path, folder_id FROM folders WHERE folder_path IN(" + query + ");")
 	indexes = {}
 	for response in responses:
@@ -72,8 +68,14 @@ def updateDataBase(paths: list[str]):
 	vacuum()
 
 
+def formatInQuery(clauses: list):
+	query = ""
+	for clause in clauses:
+		query += '"' + str(clause) + '",'
+	return query[0:len(query) - 1]
+
+
 def scan(Path: str, parent: (int, None)):
-	# TODO diagnose cause of occasional OSError
 	items = listdir(Path)
 	fileData = []
 	directories = []
@@ -101,9 +103,10 @@ def scan(Path: str, parent: (int, None)):
 		except PermissionError:
 			print("permission denied: ", directory)
 		except FileNotFoundError:
+			
 			print("could not find:", directory)
 		except OSError:
-			print("OS error on:",directory)
+			print("OS error on:", directory)
 	directories.clear()
 
 
@@ -140,7 +143,7 @@ def addFolders(paths: list[str]):
 		addFolder(Path)
 
 
-def getFolderIndex(Path: str) -> (int, None):
+def getFolderIndex(Path: str) -> (str, None):
 	try:
 		result = cur.execute("SELECT folder_id FROM folders WHERE folder_path = '" + Path + "' LIMIT 1;")
 		for r in result:
@@ -178,4 +181,25 @@ def filesWithExtension(ext: (str, None)) -> list[tuple]:
 		return executeQuery("SELECT * FROM files WHERE extension = '" + ext + "';")
 
 
-# TODO method to get all files within a folder, including sub-folders
+def removeFolder(folder: str, cleanup: bool):
+	index = getFolderIndex(folder)
+	directories = getChildDirectories([index])
+	directories.append(index)
+	query = formatInQuery(directories)
+	
+	execute("DELETE FROM files WHERE parent IN(" + query + ")", True)
+	execute("DELETE FROM folders WHERE folder_id IN(" + query + ")", True)
+	if cleanup:
+		vacuum()
+
+
+def getChildDirectories(folders: list[any]):
+	query = formatInQuery(folders)
+	parentsRaw = executeQuery("SELECT folder_id FROM folders WHERE parent IN(" + query + ");")
+	children = []
+	for p in parentsRaw:
+		(ID, *drop) = p
+		children.append(ID)
+	if len(children) > 0:
+		children.extend(getChildDirectories(children))
+	return children
