@@ -3,7 +3,6 @@ from matplotlib import pyplot
 import numpy as np
 
 
-
 def exportToCSV(header: str, path: str, data: list[tuple]):
 	file = open(path, 'w', encoding="UTF-16")
 	file.write(header + '\n')
@@ -80,7 +79,7 @@ def barGraphByExtension(min):
 	x = np.array(finalExtensions)
 	pyplot.bar(x, y)
 	pyplot.show()
-	
+
 
 def writeTFLList(path: str, WhereClause: str):
 	db = databaseManager
