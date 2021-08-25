@@ -14,6 +14,7 @@ def createDatabase():
 	DROP INDEX IF EXISTS folder_path;
 	CREATE TABLE IF NOT EXISTS files(
 			file_id INTEGER PRIMARY KEY AUTOINCREMENT,
+			basename TEXT,
 			file_path TEXT,
 			extension TEXT,
 			size INT,
@@ -22,6 +23,7 @@ def createDatabase():
 		);
 		CREATE TABLE folders(
 		folder_id INTEGER PRIMARY KEY AUTOINCREMENT,
+		basename TEXT,
 		folder_path TEXT,
 		parent INT,
 		FOREIGN KEY (parent) REFERENCES folders(folder_id)
@@ -58,7 +60,7 @@ def updateDataBase(paths: list[str]):
 	""")
 	con.commit()
 	for Path in paths:
-		cur.execute("INSERT INTO folders VALUES(NULL,\"" + Path + "\", NULL)")
+		cur.execute("INSERT INTO folders VALUES(NULL,NULL,\"" + Path + "\", NULL)")
 		print("enumerating ", Path)
 		scan(Path, getFolderIndex(Path))
 	con.commit()
@@ -84,16 +86,18 @@ def scan(Path: str, parent: (int, None)):
 		try:
 			filepath = path.join(Path, item)
 			if path.isfile(filepath):
-				fileData.append(compileFileData(filepath, parent))
+				
+				fileData.append(compileFileData(item, filepath, parent))
 			else:
 				directories.append(filepath)
-				dirData.append((filepath, parent))
+				
+				dirData.append((item, filepath, parent))
 		except FileNotFoundError:
 			print("file not found: ", item)
 	
-	writeFileData(fileData)
+	cur.executemany("INSERT INTO files (basename,file_path,extension,size,parent) VALUES(?,?,?,?,?)", fileData)
 	fileData.clear()
-	writeFolderData(dirData)
+	cur.executemany("INSERT INTO folders (basename,folder_path, parent) VALUES (?,?,?)", dirData)
 	parents = getIndexes(directories)
 	dirData.clear()
 	
@@ -103,14 +107,16 @@ def scan(Path: str, parent: (int, None)):
 		except PermissionError:
 			print("permission denied: ", directory)
 		except FileNotFoundError:
-			
 			print("could not find:", directory)
 		except OSError:
 			print("OS error on:", directory)
+		except KeyError:
+			print('key error caught')
+	
 	directories.clear()
 
 
-def compileFileData(filepath: str, parent: (int, None)) -> tuple:
+def compileFileData(basename: str, filepath: str, parent: (int, None)) -> tuple:
 	size = 0
 	try:
 		name = path.basename(filepath)
@@ -121,15 +127,12 @@ def compileFileData(filepath: str, parent: (int, None)) -> tuple:
 		size = path.getsize(filepath)
 	except FileNotFoundError:
 		print("file not found; ", filepath)
-	return filepath, extension, size, parent
-
-
-def writeFileData(data: list[tuple]):
-	cur.executemany("INSERT INTO files (file_path,extension,size,parent) VALUES(?,?,?,?)", data)
+	# I know returning parameters I did nothing with is bad, but since tuples are immutable this was easier
+	return basename, filepath, extension, size, parent
 
 
 def writeFolderData(data: list[tuple]):
-	cur.executemany("INSERT INTO folders (folder_path, parent) VALUES (?,?)", data)
+	cur.executemany("INSERT INTO folders (basename,folder_path, parent) VALUES (?,?,?)", data)
 
 
 def addFolder(Path: str):
