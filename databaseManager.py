@@ -1,4 +1,3 @@
-import os.path
 from os import listdir, path
 from sqlite3 import connect, OperationalError
 
@@ -29,7 +28,6 @@ def createDatabase():
 		FOREIGN KEY (parent) REFERENCES folders(folder_id)
 	);
 	CREATE UNIQUE INDEX folder_path ON folders(folder_path);
-	CREATE INDEX size ON files(size);
 	VACUUM;
 	""")
 	con.commit()
@@ -38,6 +36,9 @@ def createDatabase():
 def createIndex():
 	cur.executescript("""
 	CREATE INDEX IF NOT EXISTS extension ON files(extension);
+	CREATE INDEX IF NOT EXISTS size ON files(size);
+	CREATE INDEX IF NOT EXISTS file_parent ON files(parent);
+	CREATE INDEX IF NOT EXISTS folder_parent ON files(parent);
 	""")
 	con.commit()
 
@@ -86,20 +87,18 @@ def scan(Path: str, parent: (int, None)):
 		try:
 			filepath = path.join(Path, item)
 			if path.isfile(filepath):
-				
 				fileData.append(compileFileData(item, filepath, parent))
 			else:
 				directories.append(filepath)
-				
 				dirData.append((item, filepath, parent))
 		except FileNotFoundError:
 			print("file not found: ", item)
 	
 	cur.executemany("INSERT INTO files (basename,file_path,extension,size,parent) VALUES(?,?,?,?,?)", fileData)
-	fileData.clear()
 	cur.executemany("INSERT INTO folders (basename,folder_path, parent) VALUES (?,?,?)", dirData)
 	parents = getIndexes(directories)
 	dirData.clear()
+	fileData.clear()
 	
 	for directory in directories:
 		try:
@@ -136,7 +135,8 @@ def writeFolderData(data: list[tuple]):
 
 
 def addFolder(Path: str):
-	writeFolderData([(Path, getFolderIndex(os.path.dirname(Path)))])
+	name = path.basename(Path)
+	writeFolderData([(name, Path, getFolderIndex(path.dirname(Path)))])
 	scan(Path, getFolderIndex(Path))
 	con.commit()
 
@@ -206,3 +206,17 @@ def getChildDirectories(folders: list[any]):
 	if len(children) > 0:
 		children.extend(getChildDirectories(children))
 	return children
+
+
+def countItems(folder: str):
+	index = getFolderIndex(folder)
+	total = 0
+	c = executeQuery("SELECT COUNT(file_id) FROM files WHERE parent='" + index + "'")
+	(count, *drop) = c[0]
+	total += count
+	children = getChildDirectories([index])
+	query = formatInQuery(children)
+	c = executeQuery("SELECT COUNT(file_id) FROM files WHERE parent IN(" + query + ")")
+	(count, *drop) = c[0]
+	total += count + len(children)
+	return total
