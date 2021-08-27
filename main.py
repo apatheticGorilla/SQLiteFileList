@@ -13,7 +13,7 @@ def time_convert(sec):
 	print("Time Lapsed = {0}:{1}:{2}".format(int(hours), int(mins), sec))
 
 
-db = databaseManager
+db = databaseManager.databaseManager()
 
 
 def rebuildDatabase(folders):
@@ -21,8 +21,15 @@ def rebuildDatabase(folders):
 	db.updateDataBase(folders)
 
 
-# print(db.executeQuery("SELECT COUNT(file_id) FROM files WHERE extension IS NULL"))
-util.writeTFLList("C:\\temp\\files2.tfl", "extension = '.mp4'")
+drives = ["C:\\", "D:\\", "F:\\", 'E:\\', 'Z:\\','G:\\']
+
+# rebuildDatabase(drives)
+# db.removeFolder("E:\\", True)
+# db.addFolder("E:\\")
+# db.createIndex()
+print(db.countItems("E:\\New folder"))
+
+# util.writeTFLList("C:\\temp\\files2.tfl", " = '.png' ORDER BY size DESC")
 # db.execute("""DELETE FROM files WHERE file_path LIKE 'Z:\\%';
 # 			DELETE FROM folders WHERE folder_path LIKE 'Z:\\%';""", True)
-# db.vacuum()
+
