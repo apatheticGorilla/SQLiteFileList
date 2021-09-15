@@ -4,8 +4,10 @@ from sqlite3 import connect, OperationalError
 
 # noinspection PyMethodMayBeStatic
 class databaseManager:
-	con = connect('c:\\Temp\\files.db')
-	cur = con.cursor()
+	
+	def __init__(self, path):
+		self.__con = connect(path)
+		self.__cur = self.__con.cursor()
 	
 	def __formatInQuery(self, clauses: list):
 		query = ""
@@ -43,13 +45,15 @@ class databaseManager:
 			except FileNotFoundError:
 				print("file not found: ", item)
 		
-		self.cur.executemany("INSERT INTO files (basename,file_path,extension,size,parent) VALUES(?,?,?,?,?)", fileData)
-		self.cur.executemany("INSERT INTO folders (basename,folder_path, parent) VALUES (?,?,?)", dirData)
+		self.__cur.executemany("INSERT INTO files (basename,file_path,extension,size,parent) VALUES(?,?,?,?,?)",
+							   fileData)
+		self.__cur.executemany("INSERT INTO folders (basename,folder_path, parent) VALUES (?,?,?)", dirData)
 		parents = self.getIndexes(directories)
 		dirData.clear()
 		fileData.clear()
 		
 		for directory in directories:
+			
 			try:
 				self.__scan(directory, parents[directory])
 			except PermissionError:
@@ -58,14 +62,11 @@ class databaseManager:
 				print("could not find:", directory)
 			except OSError:
 				print("OS error on:", directory)
-			except KeyError:
-				print('key error caught')
-		
-		directories.clear()
+			directories.clear()
 	
 	def __getFolderIndex(self, Path: str) -> (str, None):
 		try:
-			result = self.cur.execute("SELECT folder_id FROM folders WHERE folder_path = '" + Path + "' LIMIT 1;")
+			result = self.__cur.execute("SELECT folder_id FROM folders WHERE folder_path = '" + Path + "' LIMIT 1;")
 			for r in result:
 				(ID, *rest) = r
 				if r is None:
@@ -76,17 +77,17 @@ class databaseManager:
 			return None
 	
 	def __vacuum(self):
-		self.cur.execute("VACUUM;")
-		self.con.commit()
+		self.__cur.execute("VACUUM;")
+		self.__con.commit()
 	
 	def __createIndex(self):
-		self.cur.executescript("""
+		self.__cur.executescript("""
 		CREATE INDEX IF NOT EXISTS extension ON files(extension);
 		CREATE INDEX IF NOT EXISTS size ON files(size);
 		CREATE INDEX IF NOT EXISTS file_parent ON files(parent);
 		CREATE INDEX IF NOT EXISTS folder_parent ON files(parent);
 		""")
-		self.con.commit()
+		self.__con.commit()
 	
 	def __getChildDirectories(self, folders: list[any]):
 		query = self.__formatInQuery(folders)
@@ -101,7 +102,7 @@ class databaseManager:
 	
 	def createDatabase(self):
 		print("recreating tables")
-		self.cur.executescript("""
+		self.__cur.executescript("""
 		DROP TABLE IF EXISTS files;
 		DROP TABLE IF EXISTS folders;
 		DROP INDEX IF EXISTS folder_path;
@@ -124,7 +125,24 @@ class databaseManager:
 		CREATE UNIQUE INDEX folder_path ON folders(folder_path);
 		VACUUM;
 		""")
-		self.con.commit()
+		self.__con.commit()
+	
+	def updateDataBase(self, paths: list[str]):
+		print("Deleting data")
+		self.__cur.executescript("""
+			DELETE FROM files;
+			DELETE FROM folders
+		""")
+		self.__con.commit()
+		for Path in paths:
+			self.__cur.execute("INSERT INTO folders VALUES(NULL,NULL,\"" + Path + "\", NULL)")
+			print("enumerating ", Path)
+			self.__scan(Path, self.__getFolderIndex(Path))
+		self.__con.commit()
+		self.__createIndex()
+		self.__con.commit()
+		print("vacuuming")
+		self.__vacuum()
 	
 	def getIndexes(self, paths: list[str]) -> dict[str, int]:
 		query = self.__formatInQuery(paths)
@@ -135,44 +153,27 @@ class databaseManager:
 			indexes[Path] = index
 		return indexes
 	
-	def updateDataBase(self, paths: list[str]):
-		print("Deleting data")
-		self.cur.executescript("""
-			DELETE FROM files;
-			DELETE FROM folders
-		""")
-		self.con.commit()
-		for Path in paths:
-			self.cur.execute("INSERT INTO folders VALUES(NULL,NULL,\"" + Path + "\", NULL)")
-			print("enumerating ", Path)
-			self.__scan(Path, self.__getFolderIndex(Path))
-		self.con.commit()
-		self.__createIndex()
-		self.con.commit()
-		print("vacuuming")
-		self.__vacuum()
-	
 	def addFolder(self, Path: str):
 		name = path.basename(Path)
 		data = [(name, Path, self.__getFolderIndex(path.dirname(Path)))]
-		self.cur.executemany("INSERT INTO folders (basename,folder_path, parent) VALUES (?,?,?)", data)
+		self.__cur.executemany("INSERT INTO folders (basename,folder_path, parent) VALUES (?,?,?)", data)
 		self.__scan(Path, self.__getFolderIndex(Path))
-		self.con.commit()
+		self.__con.commit()
 	
 	def addFolders(self, paths: list[str]):
 		for Path in paths:
 			self.addFolder(Path)
 	
+	def execute(self, script: str, commitOnCompletion: bool):
+		self.__cur.executescript(script)
+		if commitOnCompletion:
+			self.__con.commit()
+	
 	def executeQuery(self, query: str) -> list[tuple]:
 		rows = []
-		for row in self.cur.execute(query):
+		for row in self.__cur.execute(query):
 			rows.append(row)
 		return rows
-	
-	def execute(self, script: str, commitOnCompletion: bool):
-		self.cur.executescript(script)
-		if commitOnCompletion:
-			self.con.commit()
 	
 	def filesWithExtension(self, ext: (str, None)) -> list[tuple]:
 		if ext is None:
