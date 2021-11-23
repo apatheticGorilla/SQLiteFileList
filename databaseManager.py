@@ -1,12 +1,12 @@
-from os import listdir, path
+from os import listdir, path, mkdir
 from sqlite3 import connect, OperationalError
 
 
 # noinspection PyMethodMayBeStatic
 class databaseManager:
 	
-	def __init__(self, path):
-		self.__con = connect(path)
+	def __init__(self, Path):
+		self.__con = connect(Path)
 		self.__cur = self.__con.cursor()
 	
 	def __formatInQuery(self, clauses: list):
@@ -53,7 +53,6 @@ class databaseManager:
 		fileData.clear()
 		
 		for directory in directories:
-			
 			try:
 				self.__scan(directory, parents[directory])
 			except PermissionError:
@@ -62,7 +61,7 @@ class databaseManager:
 				print("could not find:", directory)
 			except OSError:
 				print("OS error on:", directory)
-			directories.clear()
+		directories.clear()
 	
 	def __getFolderIndex(self, Path: str) -> (str, None):
 		try:
@@ -89,15 +88,15 @@ class databaseManager:
 		""")
 		self.__con.commit()
 	
-	def __getChildDirectories(self, folders: list[any]):
+	def __getChildDirectories(self, folders: list[any], searchRecursively: bool):
 		query = self.__formatInQuery(folders)
 		parentsRaw = self.executeQuery("SELECT folder_id FROM folders WHERE parent IN(" + query + ");")
 		children = []
 		for p in parentsRaw:
 			(ID, *drop) = p
 			children.append(ID)
-		if len(children) > 0:
-			children.extend(self.__getChildDirectories(children))
+		if len(children) > 0 and searchRecursively:
+			children.extend(self.__getChildDirectories(children, True))
 		return children
 	
 	def createDatabase(self):
@@ -183,7 +182,7 @@ class databaseManager:
 	
 	def removeFolder(self, folder: str, cleanup: bool):
 		index = self.__getFolderIndex(folder)
-		directories = self.__getChildDirectories([index])
+		directories = self.__getChildDirectories([index], True)
 		directories.append(index)
 		query = self.__formatInQuery(directories)
 		
@@ -198,9 +197,25 @@ class databaseManager:
 		c = self.executeQuery("SELECT COUNT(file_id) FROM files WHERE parent='" + index + "'")
 		(count, *drop) = c[0]
 		total += count
-		children = self.__getChildDirectories([index])
+		children = self.__getChildDirectories([index], True)
 		query = self.__formatInQuery(children)
 		c = self.executeQuery("SELECT COUNT(file_id) FROM files WHERE parent IN(" + query + ")")
 		(count, *drop) = c[0]
 		total += count + len(children)
 		return total
+	
+	def recreateFolderStructure(self, outFolder: str, refFolder: str):
+		cleanOutput = refFolder.replace(":", "")
+		try:
+			mkdir(path.join(outFolder, cleanOutput))
+		except FileNotFoundError:
+			pass
+		index = self.__getFolderIndex(refFolder)
+		children = self.__formatInQuery(self.__getChildDirectories([index], False))
+		childDirs = self.executeQuery("SELECT folder_path FROM folders WHERE folder_id IN(" + children + ")")
+		for child in childDirs:
+			(direc, *drop) = child
+			self.recreateFolderStructure(outFolder, direc)
+	
+	def testFunction(self):
+		pass
