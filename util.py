@@ -1,6 +1,7 @@
-import databaseManager
-from matplotlib import pyplot
 import numpy as np
+from matplotlib import pyplot
+
+from databaseManager import databaseManager
 
 
 def exportToCSV(header: str, path: str, data: list[tuple]):
@@ -17,39 +18,39 @@ def exportToCSV(header: str, path: str, data: list[tuple]):
 
 
 def pieChartByExtension(min):
-	db = databaseManager
-	extensions = []
-	counts = []
-	for item in db.executeQuery("SELECT extension FROM files GROUP BY(extension) ORDER BY count(file_id) DESC"):
-		(ext, *drop) = item
-		if ext is None:
-			extensions.append("None")
-			query = db.executeQuery("SELECT count(file_id) FROM files WHERE extension IS NULL")
-			(count, *drop) = query[0]
-			counts.append(count)
-		else:
-			extensions.append(ext)
-			query = db.executeQuery("SELECT COUNT(file_id) FROM files WHERE extension = '" + ext + "'")
-			(count, *drop) = query[0]
-			counts.append(count)
-	finalExtensions = []
-	finalCounts = []
-	other = 0
-	for i in range(len(counts)):
-		if counts[i] < min:
-			other += counts[i]
-		else:
-			finalExtensions.append(extensions[i])
-			finalCounts.append(counts[i])
-	finalExtensions.append("other")
-	finalCounts.append(other)
-	y = np.array(finalCounts)
-	pyplot.pie(y, labels=finalExtensions)
-	pyplot.show()
+	with databaseManager() as db:
+		extensions = []
+		counts = []
+		for item in db.executeQuery("SELECT extension FROM files GROUP BY(extension) ORDER BY count(file_id) DESC"):
+			(ext, *drop) = item
+			if ext is None:
+				extensions.append("None")
+				query = db.executeQuery("SELECT count(file_id) FROM files WHERE extension IS NULL")
+				(count, *drop) = query[0]
+				counts.append(count)
+			else:
+				extensions.append(ext)
+				query = db.executeQuery("SELECT COUNT(file_id) FROM files WHERE extension = '" + ext + "'")
+				(count, *drop) = query[0]
+				counts.append(count)
+		finalExtensions = []
+		finalCounts = []
+		other = 0
+		for i in range(len(counts)):
+			if counts[i] < min:
+				other += counts[i]
+			else:
+				finalExtensions.append(extensions[i])
+				finalCounts.append(counts[i])
+		finalExtensions.append("other")
+		finalCounts.append(other)
+		y = np.array(finalCounts)
+		pyplot.pie(y, labels=finalExtensions)
+		pyplot.show()
 
 
 def barGraphByExtension(min):
-	db = databaseManager
+	db = databaseManager()
 	extensions = []
 	counts = []
 	for item in db.executeQuery("SELECT extension FROM files GROUP BY(extension)"):
@@ -82,7 +83,7 @@ def barGraphByExtension(min):
 
 
 def writeTFLList(path: str, WhereClause: str):
-	db = databaseManager
+	db = databaseManager("C:\\Temp\\files.db")
 	simpleFile = open(path, 'w', encoding="UTF-8")
 	fileList = db.executeQuery(
 		"SELECT file_path FROM files WHERE " + WhereClause)
