@@ -219,3 +219,6 @@ class databaseManager:
 	
 	def testFunction(self):
 		pass
+	
+	def vacuum(self):
+		self.__vacuum()
