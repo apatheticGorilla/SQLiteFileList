@@ -1,5 +1,5 @@
 import databaseManager
-import util
+# import util
 
 
 # import Timer
@@ -15,15 +15,15 @@ def time_convert(sec):
 
 db = databaseManager.databaseManager('C:\\Temp\\files.db')
 
-drives = ["C:\\", "D:\\", "F:\\", 'E:\\', 'Z:\\','G:\\']
+drives = ["C:\\", "D:\\", "F:\\", 'G:\\']
+# db.createDatabase()
+# db.recreateFolderStructure('E:\\', 'C:\\')
+# db.updateDataBase(drives)
+# db.execute('CREATE INDEX folder_parents ON folders(parent)', commitOnCompletion=True)
+total_size = db.countItems('D:\\fuck')
+print(total_size)
+# db.vacuum()
 
-# rebuildDatabase(drives)
-# db.removeFolder("E:\\", True)
-# db.addFolder("E:\\")
-# db.createIndex()
-print(db.countItems("E:\\New folder"))
-
-# util.writeTFLList("C:\\temp\\files2.tfl", " = '.png' ORDER BY size DESC")
+# util.writeTFLList("C:\\temp\\cabfiles.tfl", "extension = '.jar' ORDER BY size DESC")
 # db.execute("""DELETE FROM files WHERE file_path LIKE 'Z:\\%';
 # 			DELETE FROM folders WHERE folder_path LIKE 'Z:\\%';""", True)
-

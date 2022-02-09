@@ -1,8 +1,10 @@
 from os import listdir, path, mkdir
 from sqlite3 import connect, OperationalError
 
-
 # noinspection PyMethodMayBeStatic
+from typing import Dict, List
+
+
 class databaseManager:
 	
 	def __init__(self, Path):
@@ -84,11 +86,11 @@ class databaseManager:
 		CREATE INDEX IF NOT EXISTS extension ON files(extension);
 		CREATE INDEX IF NOT EXISTS size ON files(size);
 		CREATE INDEX IF NOT EXISTS file_parent ON files(parent);
-		CREATE INDEX IF NOT EXISTS folder_parent ON files(parent);
+		CREATE INDEX IF NOT EXISTS folder_parent ON folders(parent);
 		""")
 		self.__con.commit()
 	
-	def __getChildDirectories(self, folders: list[any], searchRecursively: bool):
+	def __getChildDirectories(self, folders: List[any], searchRecursively: bool):
 		query = self.__formatInQuery(folders)
 		parentsRaw = self.executeQuery("SELECT folder_id FROM folders WHERE parent IN(" + query + ");")
 		children = []
@@ -126,7 +128,7 @@ class databaseManager:
 		""")
 		self.__con.commit()
 	
-	def updateDataBase(self, paths: list[str]):
+	def updateDataBase(self, paths: List[str]):
 		print("Deleting data")
 		self.__cur.executescript("""
 			DELETE FROM files;
@@ -143,7 +145,7 @@ class databaseManager:
 		print("vacuuming")
 		self.__vacuum()
 	
-	def getIndexes(self, paths: list[str]) -> dict[str, int]:
+	def getIndexes(self, paths: List[str]) -> Dict[str, int]:
 		query = self.__formatInQuery(paths)
 		responses = self.executeQuery("SELECT folder_path, folder_id FROM folders WHERE folder_path IN(" + query + ");")
 		indexes = {}
@@ -159,7 +161,7 @@ class databaseManager:
 		self.__scan(Path, self.__getFolderIndex(Path))
 		self.__con.commit()
 	
-	def addFolders(self, paths: list[str]):
+	def addFolders(self, paths: List[str]):
 		for Path in paths:
 			self.addFolder(Path)
 	
@@ -168,13 +170,13 @@ class databaseManager:
 		if commitOnCompletion:
 			self.__con.commit()
 	
-	def executeQuery(self, query: str) -> list[tuple]:
+	def executeQuery(self, query: str) -> List[tuple]:
 		rows = []
 		for row in self.__cur.execute(query):
 			rows.append(row)
 		return rows
 	
-	def filesWithExtension(self, ext: (str, None)) -> list[tuple]:
+	def filesWithExtension(self, ext: (str, None)) -> List[tuple]:
 		if ext is None:
 			return self.executeQuery("SELECT * FROM files WHERE extension IS NULL")
 		else:
@@ -191,17 +193,20 @@ class databaseManager:
 		if cleanup:
 			self.__vacuum()
 	
+	# TODO diagnose memory issue
 	def countItems(self, folder: str):
 		index = self.__getFolderIndex(folder)
 		total = 0
 		c = self.executeQuery("SELECT COUNT(file_id) FROM files WHERE parent='" + index + "'")
 		(count, *drop) = c[0]
 		total += count
+		# TODO revise. this causes high memory usage with lots of folders
 		children = self.__getChildDirectories([index], True)
 		query = self.__formatInQuery(children)
 		c = self.executeQuery("SELECT COUNT(file_id) FROM files WHERE parent IN(" + query + ")")
 		(count, *drop) = c[0]
 		total += count + len(children)
+		children.clear()
 		return total
 	
 	def recreateFolderStructure(self, outFolder: str, refFolder: str):
