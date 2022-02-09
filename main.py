@@ -1,4 +1,6 @@
 import databaseManager
+from multiprocessing import freeze_support
+
 # import util
 
 
@@ -13,15 +15,17 @@ def time_convert(sec):
 	print("Time Lapsed = {0}:{1}:{2}".format(int(hours), int(mins), sec))
 
 
-db = databaseManager.databaseManager('C:\\Temp\\files.db')
-
-drives = ["C:\\", "D:\\", "F:\\", 'G:\\']
-# db.createDatabase()
-# db.recreateFolderStructure('E:\\', 'C:\\')
-# db.updateDataBase(drives)
-# db.execute('CREATE INDEX folder_parents ON folders(parent)', commitOnCompletion=True)
-total_size = db.countItems('D:\\fuck')
-print(total_size)
+if __name__ == '__main__':
+	freeze_support()
+	db = databaseManager.databaseManager('C:\\Temp\\files.db')
+	
+	drives = ["C:\\",  "F:\\", 'G:\\']
+	# db.createDatabase()
+	# db.recreateFolderStructure('E:\\', 'C:\\')
+	db.updateDataBase(drives)
+	# db.execute('CREATE INDEX folder_parents ON folders(parent)', commitOnCompletion=True)
+	#total_size = db.countItems('D:\\fuck')
+	#print(total_size)
 # db.vacuum()
 
 # util.writeTFLList("C:\\temp\\cabfiles.tfl", "extension = '.jar' ORDER BY size DESC")

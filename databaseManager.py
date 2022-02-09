@@ -1,22 +1,26 @@
+import os.path
 from os import listdir, path, mkdir
 from sqlite3 import connect, OperationalError
-
+from multiprocessing import Pool, freeze_support
 # noinspection PyMethodMayBeStatic
 from typing import Dict, List
-
+from async_scan import async_scan
 
 class databaseManager:
+	freeze_support()
 	
 	def __init__(self, Path):
 		self.__con = connect(Path)
 		self.__cur = self.__con.cursor()
 	
+	# noinspection PyMethodMayBeStatic
 	def __formatInQuery(self, clauses: list):
 		query = ""
 		for clause in clauses:
 			query += '"' + str(clause) + '",'
 		return query[0:len(query) - 1]
 	
+	# noinspection PyMethodMayBeStatic
 	def __compileFileData(self, basename: str, filepath: str, parent: (int, None)) -> tuple:
 		size = 0
 		try:
@@ -31,21 +35,49 @@ class databaseManager:
 		# I know returning parameters I did nothing with is bad, but since tuples are immutable this was easier
 		return basename, filepath, extension, size, parent
 	
+	def __async_scan(self, info):
+		(item, Path, parent) = info
+		try:
+			filepath = path.join(Path, item)
+			if path.isfile(filepath):
+				return self.__compileFileData(item, filepath, parent)
+			else:
+				return filepath
+		
+		except FileNotFoundError:
+			print("file not found: ", item)
+		return None
+	
 	def __scan(self, Path: str, parent: (int, None)):
 		items = listdir(Path)
-		fileData = []
-		directories = []
-		dirData = []
+		# fileData = []
+		# directories = []
+		# dirData = []
+		# for item in items:
+		# 	try:
+		# 		filepath = path.join(Path, item)
+		# 		if path.isfile(filepath):
+		# 			fileData.append(self.__compileFileData(item, filepath, parent))
+		# 		else:
+		# 			directories.append(filepath)
+		# 			dirData.append((item, filepath, parent))
+		# 	except FileNotFoundError:
+		# 		print("file not found: ", item)
+		params = []
 		for item in items:
-			try:
-				filepath = path.join(Path, item)
-				if path.isfile(filepath):
-					fileData.append(self.__compileFileData(item, filepath, parent))
-				else:
-					directories.append(filepath)
-					dirData.append((item, filepath, parent))
-			except FileNotFoundError:
-				print("file not found: ", item)
+			params.append((item, Path, parent))
+		
+		# with Pool(4) as p:
+		# 	for i in p.imap_unordered(self.__async_scan, params):
+		# 		if i is tuple:
+		# 			fileData.append(i)
+		# 		elif i is not None:
+		# 			directories.append(i)
+		# 			dirData.append((os.path.basename(i), i, parent))
+	
+		a = async_scan()
+		d = a.scan(params)
+		(fileData, directories, dirData) = d
 		
 		self.__cur.executemany("INSERT INTO files (basename,file_path,extension,size,parent) VALUES(?,?,?,?,?)",
 							   fileData)
@@ -138,7 +170,8 @@ class databaseManager:
 		for Path in paths:
 			self.__cur.execute("INSERT INTO folders VALUES(NULL,NULL,\"" + Path + "\", NULL)")
 			print("enumerating ", Path)
-			self.__scan(Path, self.__getFolderIndex(Path))
+			index = self.__getFolderIndex(Path)
+			self.__scan(Path, index)
 		self.__con.commit()
 		self.__createIndex()
 		self.__con.commit()
