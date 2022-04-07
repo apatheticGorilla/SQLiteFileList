@@ -67,14 +67,15 @@ class databaseManager:
 	
 	def __getFolderIndex(self, Path: str) -> (str, None):
 		try:
-			result = self.__cur.execute("SELECT folder_id FROM folders WHERE folder_path = '" + Path + "' LIMIT 1;")
+			result = self.__cur.execute("SELECT folder_id FROM folders WHERE folder_path = '" + Path + "';")
+			assert len(result.fetchall()) <= 1
 			for r in result:
 				(ID, *rest) = r
 				if r is None:
 					return None
 				return str(ID)
 		except OperationalError:
-			print("failed to get index for", path)
+			print("failed to get index for", Path)
 			return None
 	
 	def __vacuum(self):
