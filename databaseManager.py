@@ -107,7 +107,7 @@ class databaseManager:
 		DROP TABLE IF EXISTS files;
 		DROP TABLE IF EXISTS folders;
 		DROP INDEX IF EXISTS folder_path;
-		CREATE TABLE IF NOT EXISTS files(
+		CREATE TABLE files(
 				file_id INTEGER PRIMARY KEY AUTOINCREMENT,
 				basename TEXT,
 				file_path TEXT,
@@ -171,10 +171,11 @@ class databaseManager:
 			self.__con.commit()
 	
 	def executeQuery(self, query: str) -> List[tuple]:
-		rows = []
-		for row in self.__cur.execute(query):
-			rows.append(row)
-		return rows
+		# rows = []
+		# for row in self.__cur.execute(query):
+		# 	rows.append(row)
+		rows = self.__cur.execute(query)
+		return rows.fetchall()
 	
 	def filesWithExtension(self, ext: (str, None)) -> List[tuple]:
 		if ext is None:
@@ -221,7 +222,22 @@ class databaseManager:
 		for child in childDirs:
 			(direc, *drop) = child
 			self.recreateFolderStructure(outFolder, direc)
-	
+			
+	def recreateFileStructure(self, outFolder, refFolder):
+		cleanOutput = refFolder.replace(":", "")
+		try:
+			outPath = path.join(outFolder, cleanOutput)
+			mkdir(outPath)
+			
+		except FileNotFoundError:
+			pass
+		index = self.__getFolderIndex(refFolder)
+		children = self.__formatInQuery(self.__getChildDirectories([index], False))
+		childDirs = self.executeQuery("SELECT folder_path FROM folders WHERE folder_id IN(" + children + ")")
+		for child in childDirs:
+			(direc, *drop) = child
+			self.recreateFileStructure(outFolder, direc)
+			
 	def testFunction(self):
 		pass
 	
