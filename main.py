@@ -17,11 +17,16 @@ db = databaseManager.databaseManager('C:\\Temp\\files.db')
 
 drives = ["C:\\", "D:\\", "F:\\", 'G:\\']
 # db.createDatabase()
-# db.recreateFolderStructure('E:\\', 'C:\\')
+#
 # db.updateDataBase(drives)
+print(db.executeQuery("SELECT basename FROM files LIMIT 10"))
+db.recreateFileStructure('D:\\', 'C:\\')
+db.recreateFileStructure('D:\\', 'D:\\')
+db.recreateFileStructure('D:\\', 'F:\\')
+db.recreateFileStructure('D:\\', 'G:\\')
 # db.execute('CREATE INDEX folder_parents ON folders(parent)', commitOnCompletion=True)
-total_size = db.countItems('D:\\fuck')
-print(total_size)
+# total_size = db.countItems('D:\\fuck')
+# print(total_size)
 # db.vacuum()
 
 # util.writeTFLList("C:\\temp\\cabfiles.tfl", "extension = '.jar' ORDER BY size DESC")

@@ -68,7 +68,7 @@ class databaseManager:
 	def __getFolderIndex(self, Path: str) -> (str, None):
 		try:
 			result = self.__cur.execute("SELECT folder_id FROM folders WHERE folder_path = '" + Path + "';")
-			assert len(result.fetchall()) <= 1
+			# assert len(result.fetchall()) <= 1
 			for r in result:
 				(ID, *rest) = r
 				if r is None:
@@ -172,11 +172,11 @@ class databaseManager:
 			self.__con.commit()
 	
 	def executeQuery(self, query: str) -> List[tuple]:
-		# rows = []
-		# for row in self.__cur.execute(query):
-		# 	rows.append(row)
-		rows = self.__cur.execute(query)
-		return rows.fetchall()
+		rows = []
+		for row in self.__cur.execute(query):
+			rows.append(row)
+		# rows = self.__cur.execute(query)
+		return rows
 	
 	def filesWithExtension(self, ext: (str, None)) -> List[tuple]:
 		if ext is None:
@@ -226,13 +226,20 @@ class databaseManager:
 			
 	def recreateFileStructure(self, outFolder, refFolder):
 		cleanOutput = refFolder.replace(":", "")
+		outPath = path.join(outFolder, cleanOutput)
 		try:
-			outPath = path.join(outFolder, cleanOutput)
 			mkdir(outPath)
-			
 		except FileNotFoundError:
 			pass
 		index = self.__getFolderIndex(refFolder)
+		if index is not None:
+			files = self.executeQuery("SELECT basename FROM files WHERE parent = '" + index + "';")
+			for f in files:
+				(file, *drop) = f
+				try:
+					open(path.join(outPath,file),'x')
+				except FileNotFoundError:
+					continue
 		children = self.__formatInQuery(self.__getChildDirectories([index], False))
 		childDirs = self.executeQuery("SELECT folder_path FROM folders WHERE folder_id IN(" + children + ")")
 		for child in childDirs:
