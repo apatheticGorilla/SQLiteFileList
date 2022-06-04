@@ -77,14 +77,13 @@ class databaseManager:
 	
 	def __getFolderIndex(self, Path: str) -> (str, None):
 		try:
-			result = self.__cur.execute("SELECT folder_id FROM folders WHERE folder_path =:Path", {"Path": Path})
-			# assert len(result.fetchall()) <= 1
-			# TODO make this use the result of fetchall() and enable the assert
-			for r in result:
-				(ID, *rest) = r
-				if r is None:
-					return None
-				return str(ID)
+			result = self.__cur.execute("SELECT folder_id FROM folders WHERE folder_path =:Path", {"Path": Path}).fetchall()
+			assert len(result) <= 1
+			
+			(ID, *rest) = result[0]
+			if ID is None:
+				return None
+			return str(ID)
 		except OperationalError:
 			print("failed to get index for", Path)
 			return None
