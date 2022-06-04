@@ -151,9 +151,9 @@ class databaseManager:
 		self.__con.commit()
 		
 		for Path in paths:
-			# add folder and get it's index
-			self.__cur.execute("INSERT INTO folders VALUES(NULL,NULL,':path', NULL)", {'path': Path})
-			print("enumerating ", Path)
+			# add folder and get its index
+			self.__cur.execute("INSERT INTO folders (basename, folder_path)VALUES(?,?);", (Path, Path))
+			print("enumerating ", path)
 			self.__scan(Path, self.__getFolderIndex(Path))
 		
 		self.__con.commit()
