@@ -158,7 +158,6 @@ class databaseManager:
 		
 		self.__con.commit()
 		self.__createIndex()
-		self.__con.commit()
 		print("vacuuming")
 		self.__vacuum()
 	
