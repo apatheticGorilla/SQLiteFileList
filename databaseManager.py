@@ -195,13 +195,8 @@ class databaseManager:
 			self.__con.commit()
 	
 	# public function for queries
-	# TODO replace with fetchall
 	def executeQuery(self, query: str) -> List[tuple]:
-		rows = []
-		for row in self.__cur.execute(query):
-			rows.append(row)
-		# rows = self.__cur.execute(query)
-		return rows
+		return self.__cur.execute(query).fetchall()
 	
 	# returns a list of all files with specified extension
 	def filesWithExtension(self, ext: (str, None)) -> List[tuple]:
