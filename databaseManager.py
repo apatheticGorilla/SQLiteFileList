@@ -1,5 +1,4 @@
 from os import listdir, path, mkdir
-import os
 from sqlite3 import connect, OperationalError
 
 # noinspection PyMethodMayBeStatic
@@ -24,7 +23,7 @@ class databaseManager:
 	
 	# get file info for the database
 	# TODO find a better name for this
-	def __compileFileData(self, basename: str, filepath: str, parent: (int, None)) -> tuple:
+	def __getFileInfo(self, basename: str, filepath: str, parent: (int, None)) -> tuple:
 		size = 0
 		try:
 			name = path.basename(filepath)
@@ -50,7 +49,7 @@ class databaseManager:
 				filepath = path.join(Path, item)
 				# check if the path is a file or folder and put into the appropriate list
 				if path.isfile(filepath):
-					fileData.append(self.__compileFileData(item, filepath, parent))
+					fileData.append(self.__getFileInfo(item, filepath, parent))
 				else:
 					directories.append(filepath)
 					dirData.append((item, filepath, parent))
