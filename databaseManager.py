@@ -1,18 +1,20 @@
 from os import listdir, path, mkdir
+import os
 from sqlite3 import connect, OperationalError
 
 # noinspection PyMethodMayBeStatic
 from typing import Dict, List
 
 
-# TODO replace string-based operations with parameter substitution
-# TODO eliminate use of executeQuery
 class databaseManager:
 	
 	def __init__(self, Path):
+		createNew = path.exists(Path)
 		self.__con = connect(Path)
 		self.__cur = self.__con.cursor()
-		# TODO automatically create database if none is found
+		if not createNew:
+			print('no file was found, creating tables')
+			self.createDatabase()
 	
 	def __formatInQuery(self, clauses: list):
 		query = ""
@@ -78,6 +80,7 @@ class databaseManager:
 	def __getFolderIndex(self, Path: str) -> (str, None):
 		try:
 			result = self.__cur.execute("SELECT folder_id FROM folders WHERE folder_path =:Path", {"Path": Path}).fetchall()
+			# folder_path is unique, so it would be incredible if this failed before a database insertion
 			assert len(result) <= 1
 			
 			(ID, *rest) = result[0]
