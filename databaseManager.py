@@ -5,11 +5,14 @@ from sqlite3 import connect, OperationalError
 from typing import Dict, List
 
 
+# TODO replace string-based operations with parameter substitution
+# TODO eliminate use of executeQuery
 class databaseManager:
 	
 	def __init__(self, Path):
 		self.__con = connect(Path)
 		self.__cur = self.__con.cursor()
+		# TODO automatically create database if none is found
 	
 	def __formatInQuery(self, clauses: list):
 		query = ""
@@ -17,6 +20,8 @@ class databaseManager:
 			query += '"' + str(clause) + '",'
 		return query[0:len(query) - 1]
 	
+	# get file info for the database
+	# TODO find a better name for this
 	def __compileFileData(self, basename: str, filepath: str, parent: (int, None)) -> tuple:
 		size = 0
 		try:
@@ -31,14 +36,17 @@ class databaseManager:
 		# I know returning parameters I did nothing with is bad, but since tuples are immutable this was easier
 		return basename, filepath, extension, size, parent
 	
+	# used to recursively scan a selected folder
 	def __scan(self, Path: str, parent: (int, None)):
-		items = listdir(Path)
 		fileData = []
 		directories = []
 		dirData = []
+		
+		items = listdir(Path)
 		for item in items:
 			try:
 				filepath = path.join(Path, item)
+				# check if the path is a file or folder and put into the appropriate list
 				if path.isfile(filepath):
 					fileData.append(self.__compileFileData(item, filepath, parent))
 				else:
@@ -47,13 +55,15 @@ class databaseManager:
 			except FileNotFoundError:
 				print("file not found: ", item)
 		
+		# add items to database
 		self.__cur.executemany("INSERT INTO files (basename,file_path,extension,size,parent) VALUES(?,?,?,?,?)",
 							   fileData)
 		self.__cur.executemany("INSERT INTO folders (basename,folder_path, parent) VALUES (?,?,?)", dirData)
+		
 		parents = self.getIndexes(directories)
+		# rinse and repeat
 		dirData.clear()
 		fileData.clear()
-		
 		for directory in directories:
 			try:
 				self.__scan(directory, parents[directory])
@@ -69,6 +79,7 @@ class databaseManager:
 		try:
 			result = self.__cur.execute("SELECT folder_id FROM folders WHERE folder_path =:Path", {"Path": Path})
 			# assert len(result.fetchall()) <= 1
+			# TODO make this use the result of fetchall() and enable the assert
 			for r in result:
 				(ID, *rest) = r
 				if r is None:
@@ -82,6 +93,7 @@ class databaseManager:
 		self.__cur.execute("VACUUM;")
 		self.__con.commit()
 	
+	# used to create extra indexes after scan.
 	def __createIndex(self):
 		self.__cur.executescript("""
 		CREATE INDEX IF NOT EXISTS extension ON files(extension);
@@ -129,6 +141,7 @@ class databaseManager:
 		""")
 		self.__con.commit()
 	
+	# Clears database and scans selected folders.
 	def updateDataBase(self, paths: List[str]):
 		print("Deleting data")
 		self.__cur.executescript("""
@@ -136,16 +149,20 @@ class databaseManager:
 			DELETE FROM folders
 		""")
 		self.__con.commit()
+		
 		for Path in paths:
+			# add folder and get it's index
 			self.__cur.execute("INSERT INTO folders VALUES(NULL,NULL,':path', NULL)", {'path': Path})
 			print("enumerating ", Path)
 			self.__scan(Path, self.__getFolderIndex(Path))
+		
 		self.__con.commit()
 		self.__createIndex()
 		self.__con.commit()
 		print("vacuuming")
 		self.__vacuum()
 	
+	# used in __scan to get the index of every directory it's added for the next
 	def getIndexes(self, paths: List[str]) -> Dict[str, int]:
 		query = self.__formatInQuery(paths)
 		responses = self.__cur.execute(
@@ -156,6 +173,8 @@ class databaseManager:
 			indexes[Path] = index
 		return indexes
 	
+	# adds a folder without deleting the database
+	# TODO implement check to see if path already exists
 	def addFolder(self, Path: str):
 		name = path.basename(Path)
 		data = [(name, Path, self.__getFolderIndex(path.dirname(Path)))]
@@ -163,15 +182,20 @@ class databaseManager:
 		self.__scan(Path, self.__getFolderIndex(Path))
 		self.__con.commit()
 	
+	# adds multiple folders without deleting the database
 	def addFolders(self, paths: List[str]):
 		for Path in paths:
 			self.addFolder(Path)
 	
+	# for use outside this class to execute inserts/deletions
+	# todo check if statment is complete
 	def execute(self, script: str, commitOnCompletion: bool):
 		self.__cur.executescript(script)
 		if commitOnCompletion:
 			self.__con.commit()
 	
+	# public function for queries
+	# TODO replace with fetchall
 	def executeQuery(self, query: str) -> List[tuple]:
 		rows = []
 		for row in self.__cur.execute(query):
@@ -179,12 +203,14 @@ class databaseManager:
 		# rows = self.__cur.execute(query)
 		return rows
 	
+	# returns a list of all files with specified extension
 	def filesWithExtension(self, ext: (str, None)) -> List[tuple]:
 		if ext is None:
 			return self.__cur.execute("SELECT * FROM files WHERE extension IS NULL").fetchall()
 		else:
 			return self.__cur.execute("SELECT * FROM files WHERE extension = :ext", {"ext": ext}).fetchall()
 	
+	# removes a folder from the database
 	def removeFolder(self, folder: str, cleanup: bool):
 		index = self.__getFolderIndex(folder)
 		directories = self.__getChildDirectories([index], True)
@@ -197,7 +223,8 @@ class databaseManager:
 		if cleanup:
 			self.__vacuum()
 	
-	# TODO diagnose memory issue
+	# counts the number of items inside the folder and all subfolders.
+	# TODO rewrite this function to make use of recursion
 	def countItems(self, folder: str):
 		index = self.__getFolderIndex(folder)
 		total = 0
@@ -205,7 +232,7 @@ class databaseManager:
 		c = self.__cur.execute("SELECT COUNT(file_id) FROM files WHERE parent=':index'", {"index": index}).fetchall()
 		(count, *drop) = c[0]
 		total += count
-		# TODO revise. this causes high memory usage with lots of folders
+		
 		children = self.__getChildDirectories([index], True)
 		query = self.__formatInQuery(children)
 		c = self.__cur.execute("SELECT COUNT(file_id) FROM files WHERE parent IN(%s)" % query).fetchall()
@@ -214,19 +241,23 @@ class databaseManager:
 		children.clear()
 		return total
 	
+	# fixme only works if you start from drive level
+	# makes a copy of all folders and subfolders into refFolder
 	def recreateFolderStructure(self, outFolder: str, refFolder: str):
 		cleanOutput = refFolder.replace(":", "")
 		try:
 			mkdir(path.join(outFolder, cleanOutput))
 		except FileNotFoundError:
-			pass
+			print('you should not see this: %s' % refFolder)
+		
 		index = self.__getFolderIndex(refFolder)
 		children = self.__formatInQuery(self.__getChildDirectories([index], False))
 		childDirs = self.__cur.execute("SELECT folder_path FROM folders WHERE folder_id IN(%s)" % children).fetchall()
 		for child in childDirs:
 			(direc, *drop) = child
 			self.recreateFolderStructure(outFolder, direc)
-			
+	
+	# similar to recreateFolderStructure but creates empty files as well.
 	def recreateFileStructure(self, outFolder, refFolder):
 		cleanOutput = refFolder.replace(":", "")
 		outPath = path.join(outFolder, cleanOutput)
@@ -234,21 +265,24 @@ class databaseManager:
 			mkdir(outPath)
 		except FileNotFoundError:
 			pass
+		
 		index = self.__getFolderIndex(refFolder)
 		if index is not None:
 			files = self.__cur.execute("SELECT basename FROM files WHERE parent = :index", {"index": index}).fetchall()
 			for f in files:
 				(file, *drop) = f
 				try:
-					open(path.join(outPath,file),'x')
+					open(path.join(outPath, file), 'x')
 				except FileNotFoundError:
 					continue
+		
 		children = self.__formatInQuery(self.__getChildDirectories([index], False))
 		childDirs = self.__cur.execute("SELECT folder_path FROM folders WHERE folder_id IN(%s)" % children).fetchall()
 		for child in childDirs:
 			(direc, *drop) = child
 			self.recreateFileStructure(outFolder, direc)
-			
+	
+	# can be used to test private functions externally
 	def testFunction(self):
 		pass
 	
