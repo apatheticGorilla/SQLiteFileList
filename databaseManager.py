@@ -67,7 +67,7 @@ class databaseManager:
 	
 	def __getFolderIndex(self, Path: str) -> (str, None):
 		try:
-			result = self.__cur.execute("SELECT folder_id FROM folders WHERE folder_path = '" + Path + "';")
+			result = self.__cur.execute("SELECT folder_id FROM folders WHERE folder_path =:Path", {"Path": Path})
 			# assert len(result.fetchall()) <= 1
 			for r in result:
 				(ID, *rest) = r
@@ -93,7 +93,7 @@ class databaseManager:
 	
 	def __getChildDirectories(self, folders: List[any], searchRecursively: bool):
 		query = self.__formatInQuery(folders)
-		parentsRaw = self.executeQuery("SELECT folder_id FROM folders WHERE parent IN(" + query + ");")
+		parentsRaw = self.__cur.execute("SELECT folder_id FROM folders WHERE parent IN(%s);" % query).fetchall()
 		children = []
 		for p in parentsRaw:
 			(ID, *drop) = p
@@ -137,7 +137,7 @@ class databaseManager:
 		""")
 		self.__con.commit()
 		for Path in paths:
-			self.__cur.execute("INSERT INTO folders VALUES(NULL,NULL,\"" + Path + "\", NULL)")
+			self.__cur.execute("INSERT INTO folders VALUES(NULL,NULL,':path', NULL)", {'path': Path})
 			print("enumerating ", Path)
 			self.__scan(Path, self.__getFolderIndex(Path))
 		self.__con.commit()
@@ -148,7 +148,8 @@ class databaseManager:
 	
 	def getIndexes(self, paths: List[str]) -> Dict[str, int]:
 		query = self.__formatInQuery(paths)
-		responses = self.executeQuery("SELECT folder_path, folder_id FROM folders WHERE folder_path IN(" + query + ");")
+		responses = self.__cur.execute(
+			"SELECT folder_path, folder_id FROM folders WHERE folder_path IN(%s);" % query).fetchall()
 		indexes = {}
 		for response in responses:
 			(Path, index, *rest) = response
@@ -180,9 +181,9 @@ class databaseManager:
 	
 	def filesWithExtension(self, ext: (str, None)) -> List[tuple]:
 		if ext is None:
-			return self.executeQuery("SELECT * FROM files WHERE extension IS NULL")
+			return self.__cur.execute("SELECT * FROM files WHERE extension IS NULL").fetchall()
 		else:
-			return self.executeQuery("SELECT * FROM files WHERE extension = '" + ext + "';")
+			return self.__cur.execute("SELECT * FROM files WHERE extension = :ext", {"ext": ext}).fetchall()
 	
 	def removeFolder(self, folder: str, cleanup: bool):
 		index = self.__getFolderIndex(folder)
@@ -190,8 +191,9 @@ class databaseManager:
 		directories.append(index)
 		query = self.__formatInQuery(directories)
 		
-		self.execute("DELETE FROM files WHERE parent IN(" + query + ")", True)
-		self.execute("DELETE FROM folders WHERE folder_id IN(" + query + ")", True)
+		self.__cur.execute("DELETE FROM files WHERE parent IN(%s)" % query)
+		self.__cur.execute("DELETE FROM folders WHERE folder_id IN(%s)" % query)
+		self.__con.commit()
 		if cleanup:
 			self.__vacuum()
 	
@@ -199,13 +201,14 @@ class databaseManager:
 	def countItems(self, folder: str):
 		index = self.__getFolderIndex(folder)
 		total = 0
-		c = self.executeQuery("SELECT COUNT(file_id) FROM files WHERE parent='" + index + "'")
+		#
+		c = self.__cur.execute("SELECT COUNT(file_id) FROM files WHERE parent=':index'", {"index": index}).fetchall()
 		(count, *drop) = c[0]
 		total += count
 		# TODO revise. this causes high memory usage with lots of folders
 		children = self.__getChildDirectories([index], True)
 		query = self.__formatInQuery(children)
-		c = self.executeQuery("SELECT COUNT(file_id) FROM files WHERE parent IN(" + query + ")")
+		c = self.__cur.execute("SELECT COUNT(file_id) FROM files WHERE parent IN(%s)" % query).fetchall()
 		(count, *drop) = c[0]
 		total += count + len(children)
 		children.clear()
@@ -219,7 +222,7 @@ class databaseManager:
 			pass
 		index = self.__getFolderIndex(refFolder)
 		children = self.__formatInQuery(self.__getChildDirectories([index], False))
-		childDirs = self.executeQuery("SELECT folder_path FROM folders WHERE folder_id IN(" + children + ")")
+		childDirs = self.__cur.execute("SELECT folder_path FROM folders WHERE folder_id IN(%s)" % children).fetchall()
 		for child in childDirs:
 			(direc, *drop) = child
 			self.recreateFolderStructure(outFolder, direc)
@@ -233,7 +236,7 @@ class databaseManager:
 			pass
 		index = self.__getFolderIndex(refFolder)
 		if index is not None:
-			files = self.executeQuery("SELECT basename FROM files WHERE parent = '" + index + "';")
+			files = self.__cur.execute("SELECT basename FROM files WHERE parent = :index", {"index": index}).fetchall()
 			for f in files:
 				(file, *drop) = f
 				try:
@@ -241,7 +244,7 @@ class databaseManager:
 				except FileNotFoundError:
 					continue
 		children = self.__formatInQuery(self.__getChildDirectories([index], False))
-		childDirs = self.executeQuery("SELECT folder_path FROM folders WHERE folder_id IN(" + children + ")")
+		childDirs = self.__cur.execute("SELECT folder_path FROM folders WHERE folder_id IN(%s)" % children).fetchall()
 		for child in childDirs:
 			(direc, *drop) = child
 			self.recreateFileStructure(outFolder, direc)
