@@ -11,6 +11,8 @@ class databaseManager:
 		createNew = path.exists(Path)
 		self.__con = connect(Path)
 		self.__cur = self.__con.cursor()
+		self.__queryCount = 0
+		self.__updateCount = 0
 		if not createNew:
 			print('no file was found, creating tables')
 			self.createDatabase()
@@ -57,8 +59,10 @@ class databaseManager:
 				print("file not found: ", item)
 		
 		# add items to database
+		self.__updateCount += 1
 		self.__cur.executemany("INSERT INTO files (basename,file_path,extension,size,parent) VALUES(?,?,?,?,?)",
 							   fileData)
+		self.__updateCount += 1
 		self.__cur.executemany("INSERT INTO folders (basename,folder_path, parent) VALUES (?,?,?)", dirData)
 		
 		parents = self.getIndexes(directories)
@@ -78,7 +82,9 @@ class databaseManager:
 	
 	def __getFolderIndex(self, Path: str) -> (str, None):
 		try:
-			result = self.__cur.execute("SELECT folder_id FROM folders WHERE folder_path =:Path", {"Path": Path}).fetchall()
+			result = self.__cur.execute("SELECT folder_id FROM folders WHERE folder_path =:Path",
+										{"Path": Path}).fetchall()
+			self.__queryCount += 1
 			# folder_path is unique, so it would be incredible if this failed before a database insertion
 			assert len(result) <= 1
 			
@@ -106,6 +112,7 @@ class databaseManager:
 	
 	def __getChildDirectories(self, folders: List[any], searchRecursively: bool):
 		query = self.__formatInQuery(folders)
+		self.__queryCount += 1
 		parentsRaw = self.__cur.execute("SELECT folder_id FROM folders WHERE parent IN(%s);" % query).fetchall()
 		children = []
 		for p in parentsRaw:
@@ -153,20 +160,24 @@ class databaseManager:
 		
 		for Path in paths:
 			# add folder and get its index
+			self.__updateCount += 1
 			self.__cur.execute("INSERT INTO folders (basename, folder_path)VALUES(?,?);", (Path, Path))
-			print("enumerating ", path)
+			print("enumerating ", Path)
 			self.__scan(Path, self.__getFolderIndex(Path))
 		
 		self.__con.commit()
 		self.__createIndex()
 		print("vacuuming")
 		self.__vacuum()
+		self.reportDbStats()
 	
 	# used in __scan to get the index of every directory it's added for the next
 	def getIndexes(self, paths: List[str]) -> Dict[str, int]:
 		query = self.__formatInQuery(paths)
+		self.__queryCount += 1
 		responses = self.__cur.execute(
 			"SELECT folder_path, folder_id FROM folders WHERE folder_path IN(%s);" % query).fetchall()
+		# move indexes to dict
 		indexes = {}
 		for response in responses:
 			(Path, index, *rest) = response
@@ -178,6 +189,7 @@ class databaseManager:
 	def addFolder(self, Path: str):
 		name = path.basename(Path)
 		data = [(name, Path, self.__getFolderIndex(path.dirname(Path)))]
+		self.__updateCount += 1
 		self.__cur.executemany("INSERT INTO folders (basename,folder_path, parent) VALUES (?,?,?)", data)
 		self.__scan(Path, self.__getFolderIndex(Path))
 		self.__con.commit()
@@ -188,18 +200,21 @@ class databaseManager:
 			self.addFolder(Path)
 	
 	# for use outside this class to execute inserts/deletions
-	# todo check if statment is complete
+	# todo check if statement is complete
 	def execute(self, script: str, commitOnCompletion: bool):
+		self.__updateCount += 1
 		self.__cur.executescript(script)
 		if commitOnCompletion:
 			self.__con.commit()
 	
 	# public function for queries
 	def executeQuery(self, query: str) -> List[tuple]:
+		self.__queryCount += 1
 		return self.__cur.execute(query).fetchall()
 	
 	# returns a list of all files with specified extension
 	def filesWithExtension(self, ext: (str, None)) -> List[tuple]:
+		self.__queryCount += 1
 		if ext is None:
 			return self.__cur.execute("SELECT * FROM files WHERE extension IS NULL").fetchall()
 		else:
@@ -214,6 +229,7 @@ class databaseManager:
 		
 		self.__cur.execute("DELETE FROM files WHERE parent IN(%s)" % query)
 		self.__cur.execute("DELETE FROM folders WHERE folder_id IN(%s)" % query)
+		self.__updateCount += 2
 		self.__con.commit()
 		if cleanup:
 			self.__vacuum()
@@ -223,13 +239,14 @@ class databaseManager:
 	def countItems(self, folder: str):
 		index = self.__getFolderIndex(folder)
 		total = 0
-		#
+		self.__queryCount += 1
 		c = self.__cur.execute("SELECT COUNT(file_id) FROM files WHERE parent=':index'", {"index": index}).fetchall()
 		(count, *drop) = c[0]
 		total += count
 		
 		children = self.__getChildDirectories([index], True)
 		query = self.__formatInQuery(children)
+		self.__queryCount += 1
 		c = self.__cur.execute("SELECT COUNT(file_id) FROM files WHERE parent IN(%s)" % query).fetchall()
 		(count, *drop) = c[0]
 		total += count + len(children)
@@ -247,6 +264,7 @@ class databaseManager:
 		
 		index = self.__getFolderIndex(refFolder)
 		children = self.__formatInQuery(self.__getChildDirectories([index], False))
+		self.__queryCount += 1
 		childDirs = self.__cur.execute("SELECT folder_path FROM folders WHERE folder_id IN(%s)" % children).fetchall()
 		for child in childDirs:
 			(direc, *drop) = child
@@ -263,6 +281,7 @@ class databaseManager:
 		
 		index = self.__getFolderIndex(refFolder)
 		if index is not None:
+			self.__queryCount += 1
 			files = self.__cur.execute("SELECT basename FROM files WHERE parent = :index", {"index": index}).fetchall()
 			for f in files:
 				(file, *drop) = f
@@ -272,6 +291,7 @@ class databaseManager:
 					continue
 		
 		children = self.__formatInQuery(self.__getChildDirectories([index], False))
+		self.__queryCount += 1
 		childDirs = self.__cur.execute("SELECT folder_path FROM folders WHERE folder_id IN(%s)" % children).fetchall()
 		for child in childDirs:
 			(direc, *drop) = child
@@ -283,3 +303,10 @@ class databaseManager:
 	
 	def vacuum(self):
 		self.__vacuum()
+	
+	def reportDbStats(self):
+		print("Queries:", str(self.__queryCount), " updates: ", str(self.__updateCount))
+	
+	def resetDbStats(self):
+		self.__queryCount = 0
+		self.__updateCount = 0

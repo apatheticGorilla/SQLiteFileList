@@ -15,15 +15,13 @@ def time_convert(sec):
 
 db = databaseManager.databaseManager('C:\\Temp\\files.db')
 
-drives = ["C:\\", "D:\\", "F:\\", 'G:\\']
+drives = ["C:\\", "D:\\", "F:\\", 'G:\\', 'Z:\\']
 # db.createDatabase()
-#
 # db.updateDataBase(drives)
-print(db.executeQuery("SELECT basename FROM files LIMIT 10"))
-db.recreateFileStructure('D:\\', 'C:\\')
-db.recreateFileStructure('D:\\', 'D:\\')
-db.recreateFileStructure('D:\\', 'F:\\')
-db.recreateFileStructure('D:\\', 'G:\\')
+# db.updateDataBase(["C:\\"])
+# print(db.testFunction('C:\\Program Files'))
+print(db.countItems("G:\\OBS\\"))
+db.reportDbStats()
 # db.execute('CREATE INDEX folder_parents ON folders(parent)', commitOnCompletion=True)
 # total_size = db.countItems('D:\\fuck')
 # print(total_size)
