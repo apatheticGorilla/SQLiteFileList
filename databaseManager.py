@@ -87,10 +87,9 @@ class databaseManager:
 			self.__queryCount += 1
 			# folder_path is unique, so it would be incredible if this failed before a database insertion
 			assert len(result) <= 1
-			
-			(ID, *rest) = result[0]
-			if ID is None:
+			if len(result) == 0:
 				return None
+			(ID, *rest) = result[0]
 			return str(ID)
 		except OperationalError:
 			print("failed to get index for", Path)
