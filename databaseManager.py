@@ -239,7 +239,7 @@ class databaseManager:
 		index = self.__getFolderIndex(folder)
 		total = 0
 		self.__queryCount += 1
-		c = self.__cur.execute("SELECT COUNT(file_id) FROM files WHERE parent=':index'", {"index": index}).fetchall()
+		c = self.__cur.execute("SELECT COUNT(file_id) FROM files WHERE parent=:index", {"index": index}).fetchall()
 		(count, *drop) = c[0]
 		total += count
 		
