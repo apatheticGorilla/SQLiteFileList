@@ -8,12 +8,12 @@ from typing import Dict, List
 class databaseManager:
 	
 	def __init__(self, Path):
-		createNew = path.exists(Path)
+		dbExists = path.exists(Path)
 		self.__con = connect(Path)
 		self.__cur = self.__con.cursor()
 		self.__queryCount = 0
 		self.__updateCount = 0
-		if not createNew:
+		if not dbExists:
 			print('no file was found, creating tables')
 			self.createDatabase()
 	
