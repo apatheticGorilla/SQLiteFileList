@@ -160,7 +160,7 @@ class databaseManager:
 			# add folder and get its index
 			self.__updateCount += 1
 			self.__cur.execute("INSERT INTO folders (basename, folder_path)VALUES(?,?);", (Path, Path))
-			print("enumerating ", Path)
+			print("scanning ", Path)
 			self.__scan(Path, self.__getFolderIndex(Path))
 		
 		self.__con.commit()
