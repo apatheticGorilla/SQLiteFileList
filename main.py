@@ -15,9 +15,9 @@ def time_convert(sec):
 
 db = databaseManager.databaseManager('C:\\Temp\\files.db', "C:\\Temp\\databaseManger.log")
 # , "D:\\", "F:\\", 'G:\\','Z:\\'
-drives = ["C:\\"]
+drives = ["C:\\", "D:\\"]
 # db.createDatabase()
-# db.updateDataBase(drives)
+db.updateDataBase(drives, 0)
 
 
 # util.writeTFLList("C:\\temp\\cabfiles.tfl", "extension = '.jar' ORDER BY size DESC")

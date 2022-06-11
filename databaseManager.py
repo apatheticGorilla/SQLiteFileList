@@ -37,6 +37,8 @@ class databaseManager:
 		self.__cur = self.__con.cursor()
 		self.__queryCount = 0
 		self.__updateCount = 0
+		self.__currentdepth = 0
+		self.__maxdepth = -1
 
 		# create database if it doesn't exist already
 		if not dbExists:
@@ -68,6 +70,12 @@ class databaseManager:
 
 	# used to recursively scan a selected folder
 	def __scan(self, Path: str, parent: (int, None)):
+		self.__currentdepth += 1
+		if 0 < self.__maxdepth <= self.__currentdepth:
+			self.__currentdepth -= 1
+			self.log.debug('exceeded maximum depth on folder: %s', Path)
+			return
+
 		fileData = []
 		directories = []
 		dirData = []
@@ -92,6 +100,7 @@ class databaseManager:
 		self.__cur.executemany("INSERT INTO folders (basename,folder_path, parent) VALUES (?,?,?)", dirData)
 
 		parents = self.getIndexes(directories)
+
 		# rinse and repeat
 		dirData.clear()
 		fileData.clear()
@@ -99,15 +108,22 @@ class databaseManager:
 			try:
 				self.__scan(directory, parents[directory])
 			except PermissionError:
+				# we must subtract the current depth when these exceptions are thrown
+				# because it did not reach the end
+				self.__currentdepth -= 1
 				self.log.warning("permission denied: %s", directory)
 
 			except FileNotFoundError:
+				self.__currentdepth -= 1
 				self.log.warning("could not find: %s", directory)
 
 			except OSError:
+				self.__currentdepth -= 1
 				self.log.warning("OS error on: %s", directory)
 
 		directories.clear()
+		self.__currentdepth -= 1
+		assert self.__currentdepth >= 0
 
 	def __getFolderIndex(self, Path: str) -> (str, None):
 		try:
@@ -181,7 +197,8 @@ class databaseManager:
 		self.__con.commit()
 
 	# Clears database and scans selected folders.
-	def updateDataBase(self, paths: List[str]):
+	def updateDataBase(self, paths: List[str], maxSearchDepth):
+		self.__maxdepth = maxSearchDepth
 		self.log.info('Deleting data')
 		self.__cur.executescript("""
 			DELETE FROM files;
@@ -196,6 +213,7 @@ class databaseManager:
 			self.log.info('scanning %s', Path)
 
 			self.__scan(Path, self.__getFolderIndex(Path))
+			assert self.__currentdepth == 0
 
 		self.__con.commit()
 		self.__createIndex()
