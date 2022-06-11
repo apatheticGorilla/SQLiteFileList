@@ -24,7 +24,6 @@ class databaseManager:
 		return query[0:len(query) - 1]
 	
 	# get file info for the database
-	# TODO find a better name for this
 	def __getFileInfo(self, basename: str, filepath: str, parent: (int, None)) -> tuple:
 		size = 0
 		try:
