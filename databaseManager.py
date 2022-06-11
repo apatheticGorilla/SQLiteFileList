@@ -8,11 +8,9 @@ from sqlite3 import connect, OperationalError
 from typing import Dict, List
 
 
-# TODO implement logging
 class databaseManager:
 
-	def __init__(self, Path):
-		logPath = 'D:\\databaseManager.log'
+	def __init__(self, Path: str, logPath: str):
 		if path.exists(logPath):
 			timestamp = datetime.fromtimestamp(path.getmtime(logPath)).strftime('%Y_%m_%d-%H-%M-%S')
 			newname = path.join(path.dirname(logPath), timestamp + '_' + path.basename(logPath))

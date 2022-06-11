@@ -13,7 +13,7 @@ def time_convert(sec):
 	print("Time Lapsed = {0}:{1}:{2}".format(int(hours), int(mins), sec))
 
 
-db = databaseManager.databaseManager('C:\\Temp\\files.db')
+db = databaseManager.databaseManager('C:\\Temp\\files.db', "C:\\Temp\\databaseManger.log")
 # , "D:\\", "F:\\", 'G:\\','Z:\\'
 drives = ["C:\\"]
 # db.createDatabase()
