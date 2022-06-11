@@ -27,7 +27,8 @@ class databaseManager:
 	def __formatInQuery(self, clauses: list):
 		query = ""
 		for clause in clauses:
-			query += '"' + str(clause) + '",'
+			clean = str(clause).replace('"', '""')
+			query += '"' + clean + '",'
 		return query[0:len(query) - 1]
 	
 	# get file info for the database
