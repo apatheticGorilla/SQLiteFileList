@@ -68,8 +68,7 @@ class databaseManager:
 		
 		# add items to database
 		self.__updateCount += 1
-		self.__cur.executemany("INSERT INTO files (basename,file_path,extension,size,parent) VALUES(?,?,?,?,?)",
-							   fileData)
+		self.__cur.executemany("INSERT INTO files (basename,file_path,extension,size,parent) VALUES(?,?,?,?,?)", fileData)
 		self.__updateCount += 1
 		self.__cur.executemany("INSERT INTO folders (basename,folder_path, parent) VALUES (?,?,?)", dirData)
 		
@@ -93,8 +92,7 @@ class databaseManager:
 	
 	def __getFolderIndex(self, Path: str) -> (str, None):
 		try:
-			result = self.__cur.execute("SELECT folder_id FROM folders WHERE folder_path =:Path",
-										{"Path": Path}).fetchall()
+			result = self.__cur.execute("SELECT folder_id FROM folders WHERE folder_path =:Path", {"Path": Path}).fetchall()
 			self.__queryCount += 1
 			# folder_path is unique, so it would be incredible if this failed before a database insertion
 			assert len(result) <= 1
