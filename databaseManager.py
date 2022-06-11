@@ -1,13 +1,20 @@
+import logging
 from os import listdir, path, mkdir
 from sqlite3 import connect, OperationalError
-
+import logging as log
 # noinspection PyMethodMayBeStatic
 from typing import Dict, List
 
 
+# TODO implement logging
 class databaseManager:
 	
 	def __init__(self, Path):
+		logPath = 'C:\\tmp\\databaseManager.log'
+		if path.exists(logPath):
+			# TODO rename file with timestamp
+			pass
+		logging.basicConfig(filename=logPath, level=logging.INFO)
 		dbExists = path.exists(Path)
 		self.__con = connect(Path)
 		self.__cur = self.__con.cursor()
@@ -34,7 +41,8 @@ class databaseManager:
 		try:
 			size = path.getsize(filepath)
 		except FileNotFoundError:
-			print("file not found; ", filepath)
+			log.warning("File Not Found: %s", )
+		# print("file not found; ", filepath)
 		# I know returning parameters I did nothing with is bad, but since tuples are immutable this was easier
 		return basename, filepath, extension, size, parent
 	
@@ -55,7 +63,7 @@ class databaseManager:
 					directories.append(filepath)
 					dirData.append((item, filepath, parent))
 			except FileNotFoundError:
-				print("file not found: ", item)
+				log.warning("Folder/file not found: %s", item)
 		
 		# add items to database
 		self.__updateCount += 1
@@ -72,11 +80,14 @@ class databaseManager:
 			try:
 				self.__scan(directory, parents[directory])
 			except PermissionError:
-				print("permission denied: ", directory)
+				log.warning("permission denied: %s", directory)
+			
 			except FileNotFoundError:
-				print("could not find:", directory)
+				log.warning("could not find: %s", directory)
+			
 			except OSError:
-				print("OS error on:", directory)
+				log.warning("OS error on: %s", directory)
+		
 		directories.clear()
 	
 	def __getFolderIndex(self, Path: str) -> (str, None):
@@ -91,7 +102,7 @@ class databaseManager:
 			(ID, *rest) = result[0]
 			return str(ID)
 		except OperationalError:
-			print("failed to get index for", Path)
+			log.error("failed to get index for directory: %s", Path)
 			return None
 	
 	def __vacuum(self):
@@ -121,6 +132,7 @@ class databaseManager:
 		return children
 	
 	def createDatabase(self):
+		log.info('(Re)Creating Tables')
 		print("recreating tables")
 		self.__cur.executescript("""
 		DROP TABLE IF EXISTS files;
@@ -149,6 +161,7 @@ class databaseManager:
 	
 	# Clears database and scans selected folders.
 	def updateDataBase(self, paths: List[str]):
+		log.info('Deleting data')
 		print("Deleting data")
 		self.__cur.executescript("""
 			DELETE FROM files;
@@ -160,11 +173,13 @@ class databaseManager:
 			# add folder and get its index
 			self.__updateCount += 1
 			self.__cur.execute("INSERT INTO folders (basename, folder_path)VALUES(?,?);", (Path, Path))
+			log.info('scanning %s', Path)
 			print("scanning ", Path)
 			self.__scan(Path, self.__getFolderIndex(Path))
 		
 		self.__con.commit()
 		self.__createIndex()
+		log.info('vacuuming')
 		print("vacuuming")
 		self.__vacuum()
 		self.reportDbStats()
@@ -258,10 +273,12 @@ class databaseManager:
 		try:
 			mkdir(path.join(outFolder, cleanOutput))
 		except FileNotFoundError:
-			print('you should not see this: %s' % refFolder)
+			log.warning('failed to make directory: %s' % refFolder)
+		# print('you should not see this: %s' % refFolder)
 		
 		index = self.__getFolderIndex(refFolder)
 		children = self.__formatInQuery(self.__getChildDirectories([index], False))
+		
 		self.__queryCount += 1
 		childDirs = self.__cur.execute("SELECT folder_path FROM folders WHERE folder_id IN(%s)" % children).fetchall()
 		for child in childDirs:
@@ -275,6 +292,7 @@ class databaseManager:
 		try:
 			mkdir(outPath)
 		except FileNotFoundError:
+			log.warning('failed to make directory: %s' % refFolder)
 			pass
 		
 		index = self.__getFolderIndex(refFolder)
@@ -283,10 +301,11 @@ class databaseManager:
 			files = self.__cur.execute("SELECT basename FROM files WHERE parent = :index", {"index": index}).fetchall()
 			for f in files:
 				(file, *drop) = f
+				pth = path.join(outPath, file)
 				try:
-					open(path.join(outPath, file), 'x')
+					open(pth, 'x')
 				except FileNotFoundError:
-					continue
+					log.warning('Failed to create file: %s', pth)
 		
 		children = self.__formatInQuery(self.__getChildDirectories([index], False))
 		self.__queryCount += 1
@@ -303,7 +322,8 @@ class databaseManager:
 		self.__vacuum()
 	
 	def reportDbStats(self):
-		print("Queries:", str(self.__queryCount), " updates: ", str(self.__updateCount))
+		log.info("Queries: %s Updates: %s", str(self.__queryCount), str(self.__updateCount))
+		print("Queries:", str(self.__queryCount), " updates:", str(self.__updateCount))
 	
 	def resetDbStats(self):
 		self.__queryCount = 0
