@@ -14,18 +14,11 @@ def time_convert(sec):
 
 
 db = databaseManager.databaseManager('C:\\Temp\\files.db')
-
-drives = ["C:\\", "D:\\", "F:\\", 'G:\\', 'Z:\\']
+# , "D:\\", "F:\\", 'G:\\','Z:\\'
+drives = ["C:\\"]
 # db.createDatabase()
 # db.updateDataBase(drives)
-# db.updateDataBase(["C:\\"])
-# print(db.testFunction('C:\\Program Files'))
-print(db.countItems("G:\\OBS\\"))
-db.reportDbStats()
-# db.execute('CREATE INDEX folder_parents ON folders(parent)', commitOnCompletion=True)
-# total_size = db.countItems('D:\\fuck')
-# print(total_size)
-# db.vacuum()
+
 
 # util.writeTFLList("C:\\temp\\cabfiles.tfl", "extension = '.jar' ORDER BY size DESC")
 # db.execute("""DELETE FROM files WHERE file_path LIKE 'Z:\\%';
