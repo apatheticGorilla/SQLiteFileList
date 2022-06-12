@@ -2,7 +2,7 @@ import logging
 import os
 from datetime import datetime
 from os import listdir, path, mkdir
-from sqlite3 import connect, OperationalError
+from sqlite3 import connect, OperationalError, complete_statement
 # noinspection PyMethodMayBeStatic
 from typing import Dict, List
 
@@ -33,6 +33,7 @@ class databaseManager:
 		self.log.addHandler(fh)
 
 		dbExists = path.exists(Path)
+		self.log.info('initializing connection object')
 		self.__con = connect(Path)
 		self.__cur = self.__con.cursor()
 		self.__queryCount = 0
@@ -44,6 +45,7 @@ class databaseManager:
 		if not dbExists:
 			self.log.info("No database file was found, creating one now")
 			self.createDatabase()
+		self.log.info('databaseManager is ready to go')
 
 	def __formatInQuery(self, clauses: list):
 		query = ""
@@ -255,6 +257,9 @@ class databaseManager:
 	# for use outside this class to execute inserts/deletions
 	# todo check if statement is complete
 	def execute(self, script: str, commitOnCompletion: bool):
+		if not complete_statement(script):
+			self.log.error('execute: incomplete sql statement')
+			return
 		self.__updateCount += 1
 		self.__cur.executescript(script)
 		if commitOnCompletion:
@@ -262,6 +267,9 @@ class databaseManager:
 
 	# public function for queries
 	def executeQuery(self, query: str) -> List[tuple]:
+		if not complete_statement(query):
+			self.log.error('executeQuery: incomplete sql statement')
+			return
 		self.__queryCount += 1
 		return self.__cur.execute(query).fetchall()
 
