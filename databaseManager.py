@@ -106,6 +106,7 @@ class databaseManager:
 		fileData.clear()
 		for directory in directories:
 			if path.islink(directory):
+				self.log.debug("%s is a systemic link", directory)
 				continue
 			try:
 				self.__scan(directory, parents[directory])
