@@ -316,53 +316,66 @@ class databaseManager:
 		children.clear()
 		return total
 
-	# fixme only works if you start from drive level
 	# makes a copy of all folders and subfolders into refFolder
 	def recreateFolderStructure(self, outFolder: str, refFolder: str):
-		cleanOutput = refFolder.replace(":", "")
+		# get basename and append to reference directory
+		b = self.__cur.execute("SELECT basename FROM folders WHERE folder_path =:path", {"path": refFolder}).fetchall()
+		self.__queryCount += 1
+		(basename, *d) = b[0]
+		cleanOutput = basename.replace(":", "")
+		target = path.join(outFolder, cleanOutput)
+
 		try:
-			mkdir(path.join(outFolder, cleanOutput))
+			mkdir(target)
 		except FileNotFoundError:
 			self.log.warning('failed to make directory: %s' % refFolder)
 		# print('you should not see this: %s' % refFolder)
 
 		index = self.__getFolderIndex(refFolder)
 		children = self.__formatInQuery(self.__getChildDirectories([index], False))
-
+		# get all folders and recursively create structure
 		self.__queryCount += 1
 		childDirs = self.__cur.execute("SELECT folder_path FROM folders WHERE folder_id IN(%s)" % children).fetchall()
 		for child in childDirs:
 			(direc, *drop) = child
-			self.recreateFolderStructure(outFolder, direc)
+			self.recreateFolderStructure(target, direc)
 
 	# similar to recreateFolderStructure but creates empty files as well.
 	def recreateFileStructure(self, outFolder, refFolder):
-		cleanOutput = refFolder.replace(":", "")
-		outPath = path.join(outFolder, cleanOutput)
+		# get basename and append to target directory
+		b = self.__cur.execute("SELECT basename FROM folders WHERE folder_path =:path", {"path": refFolder}).fetchall()
+		self.__queryCount += 1
+		(basename, *d) = b[0]
+		cleanOutput = basename.replace(":", "")
+		target = path.join(outFolder, cleanOutput)
+
 		try:
-			mkdir(outPath)
+			mkdir(target)
 		except FileNotFoundError:
 			self.log.warning('failed to make directory: %s' % refFolder)
 			pass
 
+		# get files in folder, if any
 		index = self.__getFolderIndex(refFolder)
+		# create empty file where it would be
 		if index is not None:
 			self.__queryCount += 1
 			files = self.__cur.execute("SELECT basename FROM files WHERE parent = :index", {"index": index}).fetchall()
 			for f in files:
 				(file, *drop) = f
-				pth = path.join(outPath, file)
+				pth = path.join(target, file)
 				try:
 					open(pth, 'x')
 				except FileNotFoundError:
 					self.log.warning('Failed to create file: %s', pth)
 
+		# get all folders and recursively create structure
 		children = self.__formatInQuery(self.__getChildDirectories([index], False))
 		self.__queryCount += 1
 		childDirs = self.__cur.execute("SELECT folder_path FROM folders WHERE folder_id IN(%s)" % children).fetchall()
 		for child in childDirs:
 			(direc, *drop) = child
-			self.recreateFileStructure(outFolder, direc)
+			self.recreateFileStructure(target, direc)
 
 	# can be used to test private functions externally
 	def testFunction(self):
