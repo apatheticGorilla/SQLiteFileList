@@ -10,6 +10,7 @@ from typing import Dict, List
 class databaseManager:
 
 	def __init__(self, Path: str, logPath: str):
+		# rename old log if found
 		if path.exists(logPath):
 			timestamp = datetime.fromtimestamp(path.getmtime(logPath)).strftime('%Y_%m_%d-%H-%M-%S')
 			newname = path.join(path.dirname(logPath), timestamp + '_' + path.basename(logPath))
