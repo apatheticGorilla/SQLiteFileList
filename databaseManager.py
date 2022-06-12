@@ -105,6 +105,8 @@ class databaseManager:
 		dirData.clear()
 		fileData.clear()
 		for directory in directories:
+			if path.islink(directory):
+				continue
 			try:
 				self.__scan(directory, parents[directory])
 			except PermissionError:
