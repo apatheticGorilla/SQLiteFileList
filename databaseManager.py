@@ -135,7 +135,6 @@ class databaseManager:
 		try:
 			result = self.__cur.execute("SELECT folder_id FROM folders WHERE folder_path =:Path", {"Path": Path}).fetchall()
 			self.__queryCount += 1
-
 			# folder_path is unique, so it would be incredible if this failed before a database insertion
 			assert len(result) <= 1
 
@@ -171,6 +170,7 @@ class databaseManager:
 		for p in parentsRaw:
 			(ID, *drop) = p
 			children.append(ID)
+
 		if len(children) > 0 and searchRecursively:
 			children.extend(self.__getChildDirectories(children, True))
 		return children
@@ -233,6 +233,7 @@ class databaseManager:
 		self.__queryCount += 1
 		responses = self.__cur.execute(
 			"SELECT folder_path, folder_id FROM folders WHERE folder_path IN(%s);" % query).fetchall()
+
 		# move indexes to dict
 		indexes = {}
 		for response in responses:
@@ -246,6 +247,7 @@ class databaseManager:
 		self.__maxdepth = maxSearchDepth
 		name = path.basename(Path)
 		data = [(name, Path, self.__getFolderIndex(path.dirname(Path)))]
+
 		self.__updateCount += 1
 		self.__cur.executemany("INSERT INTO folders (basename,folder_path, parent) VALUES (?,?,?)", data)
 		self.__scan(Path, self.__getFolderIndex(Path))
@@ -257,7 +259,6 @@ class databaseManager:
 			self.addFolder(Path, maxSearchDepth)
 
 	# for use outside this class to execute inserts/deletions
-	# todo check if statement is complete
 	def execute(self, script: str, commitOnCompletion: bool):
 		if not complete_statement(script):
 			self.log.error('execute: incomplete sql statement')
