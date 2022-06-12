@@ -241,7 +241,8 @@ class databaseManager:
 
 	# adds a folder without deleting the database
 	# TODO implement check to see if path already exists
-	def addFolder(self, Path: str):
+	def addFolder(self, Path: str, maxSearchDepth: int):
+		self.__maxdepth = maxSearchDepth
 		name = path.basename(Path)
 		data = [(name, Path, self.__getFolderIndex(path.dirname(Path)))]
 		self.__updateCount += 1
@@ -250,7 +251,8 @@ class databaseManager:
 		self.__con.commit()
 
 	# adds multiple folders without deleting the database
-	def addFolders(self, paths: List[str]):
+	def addFolders(self, paths: List[str], maxSearchDepth: int):
+		self.__maxdepth = maxSearchDepth
 		for Path in paths:
 			self.addFolder(Path)
 
