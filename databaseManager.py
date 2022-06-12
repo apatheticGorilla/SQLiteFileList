@@ -253,9 +253,8 @@ class databaseManager:
 
 	# adds multiple folders without deleting the database
 	def addFolders(self, paths: List[str], maxSearchDepth: int):
-		self.__maxdepth = maxSearchDepth
 		for Path in paths:
-			self.addFolder(Path)
+			self.addFolder(Path, maxSearchDepth)
 
 	# for use outside this class to execute inserts/deletions
 	# todo check if statement is complete
@@ -269,10 +268,10 @@ class databaseManager:
 			self.__con.commit()
 
 	# public function for queries
-	def executeQuery(self, query: str) -> List[tuple]:
+	def executeQuery(self, query: str) -> (List[tuple], None):
 		if not complete_statement(query):
 			self.log.error('executeQuery: incomplete sql statement')
-			return
+			return None
 		self.__queryCount += 1
 		return self.__cur.execute(query).fetchall()
 
