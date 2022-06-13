@@ -324,7 +324,10 @@ class databaseManager:
 		self.__queryCount += 1
 		(basename, *d) = b[0]
 		cleanOutput = basename.replace(":", "")
-		target = path.join(outFolder, cleanOutput)
+		if refFolder == '/':
+			target = path.join(outFolder, 'root')
+		else:
+			target = path.join(outFolder, cleanOutput)
 
 		try:
 			mkdir(target)
@@ -348,7 +351,10 @@ class databaseManager:
 		self.__queryCount += 1
 		(basename, *d) = b[0]
 		cleanOutput = basename.replace(":", "")
-		target = path.join(outFolder, cleanOutput)
+		if refFolder == '/':
+			target = path.join(outFolder, 'root')
+		else:
+			target = path.join(outFolder, cleanOutput)
 
 		try:
 			mkdir(target)
