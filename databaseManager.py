@@ -182,15 +182,15 @@ class databaseManager:
 		DROP TABLE IF EXISTS folders;
 		DROP INDEX IF EXISTS folder_path;
 		CREATE TABLE files(
-				file_id INTEGER PRIMARY KEY AUTOINCREMENT,
-				basename TEXT,
-				file_path TEXT,
-				extension TEXT,
-				size INT,
-				parent INT,
-				FOREIGN KEY (parent) REFERENCES folders (folder_id)
+			file_id INTEGER PRIMARY KEY AUTOINCREMENT,
+			basename TEXT,
+			file_path TEXT,
+			extension TEXT,
+			size INT,
+			parent INT,
+			FOREIGN KEY (parent) REFERENCES folders (folder_id)
 			);
-			CREATE TABLE folders(
+		CREATE TABLE folders(
 			folder_id INTEGER PRIMARY KEY AUTOINCREMENT,
 			basename TEXT,
 			folder_path TEXT,
