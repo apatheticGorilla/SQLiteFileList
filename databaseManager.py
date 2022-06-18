@@ -68,7 +68,6 @@ class databaseManager:
 		except FileNotFoundError:
 			self.log.warning("File Not Found: %s", filepath)
 
-		# I know returning parameters I did nothing with is bad, but since tuples are immutable this was easier
 		return basename, filepath, extension, size, parent
 
 	# used to recursively scan a selected folder
