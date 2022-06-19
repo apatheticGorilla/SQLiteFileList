@@ -285,16 +285,24 @@ class databaseManager:
 
 	# removes a folder from the database
 	def removeFolder(self, folder: str, cleanup: bool):
+		self.log.info("getting index for folder...")
 		index = self.__getFolderIndex(folder)
+
+		self.log.info("Getting Child directories...")
 		directories = self.__getChildDirectories([index], True)
 		directories.append(index)
+
+		self.log.info("formatting query...")
 		query = self.__formatInQuery(directories)
 
+		self.log.info("Deleting Folders...")
 		self.__cur.execute("DELETE FROM files WHERE parent IN(%s)" % query)
+		self.log.info("Deleting files...")
 		self.__cur.execute("DELETE FROM folders WHERE folder_id IN(%s)" % query)
 		self.__updateCount += 2
 		self.__con.commit()
 		if cleanup:
+			self.log.info("vacuuming...")
 			self.__vacuum()
 
 	# counts the number of items inside the folder and all subfolders.
