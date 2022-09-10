@@ -1,10 +1,11 @@
 import numpy as np
 from matplotlib import pyplot
+from typing import List
 
 from databaseManager import databaseManager
 
 
-def exportToCSV(header: str, path: str, data: list[tuple]):
+def exportToCSV(header: str, path: str, data: List[tuple]):
 	file = open(path, 'w', encoding="UTF-16")
 	file.write(header + '\n')
 	for d in data:
