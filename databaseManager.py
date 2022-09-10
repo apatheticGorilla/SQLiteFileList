@@ -58,6 +58,7 @@ class databaseManager:
 	# get file info for the database
 	def __getFileInfo(self, basename: str, filepath: str, parent: (int, None)) -> tuple:
 		size = 0
+		# TODO there's probably a tool for this that's not being used
 		try:
 			name = path.basename(filepath)
 			extension = name[name.rindex('.'):]
@@ -160,6 +161,7 @@ class databaseManager:
 		""")
 		self.__con.commit()
 
+	# searches for and finds folders within given folders, can be used recursively
 	def __getChildDirectories(self, folders: List[any], searchRecursively: bool):
 		query = self.__formatInQuery(folders)
 		self.__queryCount += 1
