@@ -406,3 +406,11 @@ class databaseManager:
 	def resetDbStats(self):
 		self.__queryCount = 0
 		self.__updateCount = 0
+
+	def AvgFileSize(self, folder: str) -> int:
+
+		folders = self.__getChildDirectories([self.__getFolderIndex(folder)], True)
+		response = self.__cur.execute("SELECT AVG(size) FROM files WHERE parent IN(%s)" % self.__formatInQuery(folders)).fetchall()
+		(average, *drop) = response[0]
+		return average
+
