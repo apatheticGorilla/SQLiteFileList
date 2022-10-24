@@ -134,7 +134,7 @@ class databaseManager:
 
 	def __getFolderIndex(self, Path: str) -> (str, None):
 		try:
-			result = self.__cur.execute("SELECT folder_id FROM folders WHERE folder_path =:Path", {"Path": Path}).fetchall()
+			result = self.__cur.execute("SELECT rowid FROM folders WHERE folder_path =:Path", {"Path": Path}).fetchall()
 			self.__queryCount += 1
 			# folder_path is unique, so it would be incredible if this failed before a database insertion
 			assert len(result) <= 1
@@ -166,7 +166,7 @@ class databaseManager:
 	def __getChildDirectories(self, folders: List[any], searchRecursively: bool):
 		query = self.__formatInQuery(folders)
 		self.__queryCount += 1
-		parentsRaw = self.__cur.execute("SELECT folder_id FROM folders WHERE parent IN(%s);" % query).fetchall()
+		parentsRaw = self.__cur.execute("SELECT rowid FROM folders WHERE parent IN(%s);" % query).fetchall()
 
 		children = []
 		for p in parentsRaw:
@@ -184,20 +184,18 @@ class databaseManager:
 		DROP TABLE IF EXISTS folders;
 		DROP INDEX IF EXISTS folder_path;
 		CREATE TABLE files(
-			file_id INTEGER PRIMARY KEY AUTOINCREMENT,
 			basename TEXT,
 			file_path TEXT,
 			extension TEXT,
 			size INT,
 			parent INT,
-			FOREIGN KEY (parent) REFERENCES folders (folder_id)
+			FOREIGN KEY (parent) REFERENCES folders (rowid)
 			);
 		CREATE TABLE folders(
-			folder_id INTEGER PRIMARY KEY AUTOINCREMENT,
 			basename TEXT,
 			folder_path TEXT,
 			parent INT,
-			FOREIGN KEY (parent) REFERENCES folders(folder_id)
+			FOREIGN KEY (parent) REFERENCES folders(rowid)
 		);
 		CREATE UNIQUE INDEX folder_path ON folders(folder_path);
 		VACUUM;
@@ -234,7 +232,7 @@ class databaseManager:
 		query = self.__formatInQuery(paths)
 		self.__queryCount += 1
 		responses = self.__cur.execute(
-			"SELECT folder_path, folder_id FROM folders WHERE folder_path IN(%s);" % query).fetchall()
+			"SELECT folder_path, rowid FROM folders WHERE folder_path IN(%s);" % query).fetchall()
 
 		# move indexes to dict
 		indexes = {}
@@ -301,7 +299,7 @@ class databaseManager:
 		self.log.info("Deleting Folders...")
 		self.__cur.execute("DELETE FROM files WHERE parent IN(%s)" % query)
 		self.log.info("Deleting files...")
-		self.__cur.execute("DELETE FROM folders WHERE folder_id IN(%s)" % query)
+		self.__cur.execute("DELETE FROM folders WHERE rowid IN(%s)" % query)
 		self.__updateCount += 2
 		self.__con.commit()
 		if cleanup:
@@ -349,7 +347,7 @@ class databaseManager:
 		children = self.__formatInQuery(self.__getChildDirectories([index], False))
 		# get all folders and recursively create structure
 		self.__queryCount += 1
-		childDirs = self.__cur.execute("SELECT folder_path FROM folders WHERE folder_id IN(%s)" % children).fetchall()
+		childDirs = self.__cur.execute("SELECT folder_path FROM folders WHERE rowid IN(%s)" % children).fetchall()
 		for child in childDirs:
 			(direc, *drop) = child
 			self.recreateFolderStructure(target, direc)
@@ -389,7 +387,7 @@ class databaseManager:
 		# get all folders and recursively create structure
 		children = self.__formatInQuery(self.__getChildDirectories([index], False))
 		self.__queryCount += 1
-		childDirs = self.__cur.execute("SELECT folder_path FROM folders WHERE folder_id IN(%s)" % children).fetchall()
+		childDirs = self.__cur.execute("SELECT folder_path FROM folders WHERE rowid IN(%s)" % children).fetchall()
 		for child in childDirs:
 			(direc, *drop) = child
 			self.recreateFileStructure(target, direc)
