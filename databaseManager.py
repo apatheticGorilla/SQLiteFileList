@@ -5,6 +5,7 @@ from os import listdir, path, mkdir
 from sqlite3 import connect, OperationalError, complete_statement
 # noinspection PyMethodMayBeStatic
 from typing import Dict, List
+import numpy as np
 
 
 class databaseManager:
@@ -408,9 +409,16 @@ class databaseManager:
 		self.__updateCount = 0
 
 	def AvgFileSize(self, folder: str) -> int:
-
 		folders = self.__getChildDirectories([self.__getFolderIndex(folder)], True)
 		response = self.__cur.execute("SELECT AVG(size) FROM files WHERE parent IN(%s)" % self.__formatInQuery(folders)).fetchall()
 		(average, *drop) = response[0]
 		return average
 
+	def MedianFileSize(self, folder: str) -> int:
+		folders = self.__getChildDirectories([self.__getFolderIndex(folder)], True)
+		response = self.__cur.execute("SELECT size FROM files WHERE parent IN(%s)" % self.__formatInQuery(folders)).fetchall()
+		responses = []
+		for r in response:
+			(size, *drop) = r
+			responses.append(size)
+		return np.median(responses)
