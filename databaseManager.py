@@ -50,10 +50,14 @@ class databaseManager:
 		self.log.info('databaseManager is ready to go')
 
 	def __formatInQuery(self, clauses: list):
-		query = ""
+		# query = ""
+		sanitized_clauses = []
 		for clause in clauses:
 			clean = str(clause).replace('"', '""')
-			query += '"' + clean + '",'
+			sanitized_clauses.extend(['"', clean, '",'])
+			# query.j
+			# query += '"' + clean + '",'
+		query = ''.join(sanitized_clauses)
 		return query[0:len(query) - 1]
 
 	# get file info for the database
