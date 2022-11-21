@@ -1,10 +1,10 @@
 from setuptools import setup, Extension
-
-module = Extension ('sqliteDatabase', sources=['main.pyx','databaseManager.pyx','Timer.pyx','util.pyx'])
+from Cython.Build import cythonize
+module = Extension ('sqliteDatabase', sources=['main.pyx', 'databaseManager.pyx', 'util.pyx'])
 setup(
-	name='sqlite',
+	name='SQLiteFileList',
 	version='0.1',
-	packages=['sqliteDatabase'],
 	author='Colin Behunin',
-	ext_modules=[module]
+	ext_modules=cythonize([module],compiler_directives={'language_level': 3})
+	# ext_modules=[module]
 )
