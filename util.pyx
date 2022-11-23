@@ -4,7 +4,6 @@ from typing import List
 
 from databaseManager import databaseManager
 
-
 def exportToCSV(header: str, path: str, data: List[tuple]):
 	file = open(path, 'w', encoding="UTF-16")
 	file.write(header + '\n')
@@ -16,7 +15,6 @@ def exportToCSV(header: str, path: str, data: List[tuple]):
 		file.write(line + "\n")
 	file.close()
 	print("exported to:", path)
-
 
 def pieChartByExtension(min):
 	with databaseManager() as db:
@@ -49,7 +47,6 @@ def pieChartByExtension(min):
 		pyplot.pie(y, labels=finalExtensions)
 		pyplot.show()
 
-
 def barGraphByExtension(min):
 	db = databaseManager()
 	extensions = []
@@ -81,7 +78,6 @@ def barGraphByExtension(min):
 	x = np.array(finalExtensions)
 	pyplot.bar(x, y)
 	pyplot.show()
-
 
 def writeTFLList(path: str, WhereClause: str):
 	db = databaseManager("C:\\Temp\\files.db")

@@ -1,9 +1,7 @@
 import databaseManager
 import util
 
-
 import Timer
-
 
 def time_convert(sec):
 	mins = sec // 60
@@ -11,7 +9,6 @@ def time_convert(sec):
 	hours = mins // 60
 	mins = mins % 60
 	print("Time Lapsed = {0}:{1}:{2}".format(int(hours), int(mins), sec))
-
 
 db = databaseManager.databaseManager('C:\\Temp\\files.db', "C:\\Temp\\databaseManger.log")
 # db = databaseManager.databaseManager('/home/hello/Documents/files.db', "/home/hello/Documents/databaseManger.log")
