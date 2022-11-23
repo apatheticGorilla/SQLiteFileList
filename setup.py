@@ -1,9 +1,9 @@
 from setuptools import setup, Extension
 from Cython.Build import cythonize
 modules=[]
-modules.append(Extension ('databaseManager', sources=['databaseManager.py']))
-modules.append(Extension ('util', sources=['util.py']))
-modules.append(Extension ('main', sources=['main.py']))
+modules.append(Extension ('databaseManager', sources=['databaseManager.pyx']))
+modules.append(Extension ('util', sources=['util.pyx']))
+modules.append(Extension ('main', sources=['main.pyx']))
 setup(
 	name='SQLiteFileList',
 	version='0.1',
