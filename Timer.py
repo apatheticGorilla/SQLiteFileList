@@ -1,6 +1,5 @@
 import time
 
-
 class Timer:
 	start = None
 	
@@ -10,5 +9,5 @@ class Timer:
 	def startTime(self):
 		self.start = time.time()
 	
-	def stopTime(self):
+	def stopTime(self) -> float:
 		return time.time() - self.start
