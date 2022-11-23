@@ -1,2 +1,7 @@
 /.idea/dictionaries/
 __pycache__
+/venv/
+*.c
+*.obj
+*.pyd
+/build/
