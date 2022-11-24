@@ -1,11 +1,12 @@
 import time
 
 
-class Timer:
-	start = None
+cdef class Timer:
+	cdef int start
 
 	def __init__(self):
 		pass
+		# self.start = None
 
 	def startTime(self):
 		self.start = time.time()

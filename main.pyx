@@ -1,6 +1,7 @@
 import databaseManager
 import util
 
+
 import Timer
 
 def time_convert(sec):
@@ -13,8 +14,11 @@ def time_convert(sec):
 db = databaseManager.databaseManager('C:\\Temp\\files.db', "C:\\Temp\\databaseManger.log")
 # db = databaseManager.databaseManager('/home/hello/Documents/files.db', "/home/hello/Documents/databaseManger.log")
 drives = ["C:\\", "D:\\", "F:\\", 'G:\\', 'E:\\']
-db.createDatabase()
+# db.createDatabase()
+timer = Timer.Timer()
+timer.startTime()
 db.updateDataBase(drives, 0)
+print(time_convert(timer.stopTime()))
 # db.updateDataBase([\], 0)
 
 # util.writeTFLList("C:\\temp\\cabfiles.tfl", "extension = '.jar' ORDER BY size DESC")
