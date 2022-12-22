@@ -8,7 +8,6 @@ from typing import Dict, List
 import numpy as np
 import cython
 
-
 cdef class databaseManager:
 	cdef log
 	cdef __con
@@ -56,14 +55,11 @@ cdef class databaseManager:
 			self.createDatabase()
 		self.log.info('databaseManager is ready to go')
 
-	cdef str __formatInQuery(self, clauses: list):
-		# query = ""
+	cdef str __formatInQuery(self, clauses: [str]):
 		sanitized_clauses = []
 		for clause in clauses:
 			clean = str(clause).replace('"', '""')
 			sanitized_clauses.extend(['"', clean, '",'])
-			# query.j
-			# query += '"' + clean + '",'
 		query = ''.join(sanitized_clauses)
 		return query[0:len(query) - 1]
 
@@ -343,6 +339,7 @@ cdef class databaseManager:
 		self.__queryCount += 1
 		(basename, *d) = b[0]
 		cleanOutput = basename.replace(":", "")
+		# edge case for linux root
 		if refFolder == '/':
 			target = path.join(outFolder, 'root')
 		else:
@@ -370,6 +367,7 @@ cdef class databaseManager:
 		self.__queryCount += 1
 		(basename, *d) = b[0]
 		cleanOutput = basename.replace(":", "")
+		# edge case for linux root
 		if refFolder == '/':
 			target = path.join(outFolder, 'root')
 		else:
@@ -419,13 +417,15 @@ cdef class databaseManager:
 
 	cdef int AvgFileSize(self, folder: str):
 		folders = self.__getChildDirectories([self.__getFolderIndex(folder)], True)
-		response = self.__cur.execute("SELECT AVG(size) FROM files WHERE parent IN(%s)" % self.__formatInQuery(folders)).fetchall()
+		response = self.__cur.execute(
+			"SELECT AVG(size) FROM files WHERE parent IN(%s)" % self.__formatInQuery(folders)).fetchall()
 		(average, *drop) = response[0]
 		return average
 
 	cdef int MedianFileSize(self, folder: str):
 		folders = self.__getChildDirectories([self.__getFolderIndex(folder)], True)
-		response = self.__cur.execute("SELECT size FROM files WHERE parent IN(%s)" % self.__formatInQuery(folders)).fetchall()
+		response = self.__cur.execute(
+			"SELECT size FROM files WHERE parent IN(%s)" % self.__formatInQuery(folders)).fetchall()
 		responses = []
 		for r in response:
 			(size, *drop) = r
