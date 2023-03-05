@@ -2,8 +2,8 @@ from setuptools import setup, Extension
 from Cython.Build import cythonize
 
 modules = []
-modules.append(Extension('databaseManager', sources=['databaseManager.pyx']))
-modules.append(Extension('Timer',sources=['Timer.pyx']))
+modules.append(Extension('databaseManager', sources=['databaseManager.pyx'],define_macros=[('CYTHON_TRACE', 1)]))
+modules.append(Extension('Timer', sources=['Timer.pyx']))
 modules.append(Extension('util', sources=['util.pyx']))
 
 setup(
@@ -13,3 +13,4 @@ setup(
 	ext_modules=cythonize(modules, compiler_directives={'language_level': 3})
 	# ext_modules=[module]
 )
+# , "profile": True, "linetrace": True

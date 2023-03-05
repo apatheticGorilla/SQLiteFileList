@@ -6,8 +6,9 @@ from sqlite3 import connect, OperationalError, complete_statement
 # noinspection PyMethodMayBeStatic
 from typing import Dict, List
 import numpy as np
-import cython
+cimport cython
 
+@cython.linetrace(True)
 cdef class databaseManager:
 	cdef log
 	cdef __con
