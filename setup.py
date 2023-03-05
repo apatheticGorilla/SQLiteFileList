@@ -5,7 +5,7 @@ modules = []
 modules.append(Extension('databaseManager', sources=['databaseManager.pyx']))
 modules.append(Extension('Timer',sources=['Timer.pyx']))
 modules.append(Extension('util', sources=['util.pyx']))
-modules.append(Extension('main', sources=['main.pyx']))
+
 setup(
 	name='SQLiteFileList',
 	version='0.1',
