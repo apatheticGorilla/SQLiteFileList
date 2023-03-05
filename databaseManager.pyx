@@ -52,7 +52,7 @@ cdef class databaseManager:
 		# create database if it doesn't exist already
 		if not dbExists:
 			self.log.info("No database file was found, creating one now")
-			self.createDatabase()
+			self.__createDatabase()
 		self.log.info('databaseManager is ready to go')
 
 	cdef str __formatInQuery(self, clauses: [str]):
@@ -110,7 +110,7 @@ cdef class databaseManager:
 		self.__updateCount += 1
 		self.__cur.executemany("INSERT INTO folders (basename,folder_path, parent) VALUES (?,?,?)", dirData)
 
-		parents = self.getIndexes(directories)
+		parents = self.__getIndexes(directories)
 
 		# rinse and repeat
 		dirData.clear()
@@ -184,7 +184,7 @@ cdef class databaseManager:
 			children.extend(self.__getChildDirectories(children, True))
 		return children
 
-	cdef createDatabase(self):
+	cdef __createDatabase(self):
 		self.log.info('(Re)Creating Tables')
 		self.__cur.executescript("""
 		DROP TABLE IF EXISTS files;
@@ -209,8 +209,11 @@ cdef class databaseManager:
 		""")
 		self.__con.commit()
 
+	def createDatabase(self):
+		self.__createDatabase()
+
 	# Clears database and scans selected folders.
-	def updateDataBase(self, paths: List[str], maxSearchDepth):
+	cdef __updateDataBase(self, paths: List[str], maxSearchDepth):
 		self.__maxdepth = maxSearchDepth
 		self.log.info('Deleting data')
 		self.__cur.executescript("""
@@ -232,10 +235,13 @@ cdef class databaseManager:
 		self.__createIndex()
 		self.log.info('vacuuming')
 		self.__vacuum()
-		self.reportDbStats()
+		self.__reportDbStats()
+
+	def updateDatabase(self, paths: List[str], maxSearchDepth):
+		self.__updateDataBase(paths, maxSearchDepth)
 
 	# used in __scan to get the index of every directory it's added for the next
-	cdef getIndexes(self, paths: List[str]):
+	cdef __getIndexes(self, paths: List[str]):
 		query = self.__formatInQuery(paths)
 		self.__queryCount += 1
 		responses = self.__cur.execute(
@@ -250,7 +256,7 @@ cdef class databaseManager:
 
 	# adds a folder without deleting the database
 	# TODO implement check to see if path already exists
-	cdef addFolder(self, Path: str, maxSearchDepth: int):
+	cdef __addFolder(self, Path: str, maxSearchDepth: int):
 		self.__maxdepth = maxSearchDepth
 		name = path.basename(Path)
 		data = [(name, Path, self.__getFolderIndex(path.dirname(Path)))]
@@ -260,13 +266,19 @@ cdef class databaseManager:
 		self.__scan(Path, self.__getFolderIndex(Path))
 		self.__con.commit()
 
+	def addFolder(self, Path: str, maxSearchDepth: int):
+		self.__addFolder(Path, maxSearchDepth)
+
 	# adds multiple folders without deleting the database
-	cdef addFolders(self, paths: List[str], maxSearchDepth: int):
+	cdef __addFolders(self, paths: List[str], maxSearchDepth: int):
 		for Path in paths:
-			self.addFolder(Path, maxSearchDepth)
+			self.__addFolder(Path, maxSearchDepth)
+
+	def addFolders(self, paths: List[str], maxSearchDepth: int):
+		self.__addFolders(paths, maxSearchDepth)
 
 	# for use outside this class to execute inserts/deletions
-	cdef execute(self, script: str, commitOnCompletion: bool):
+	cdef __execute(self, script: str, commitOnCompletion: bool):
 		if not complete_statement(script):
 			self.log.error('execute: incomplete sql statement')
 			return
@@ -275,24 +287,32 @@ cdef class databaseManager:
 		if commitOnCompletion:
 			self.__con.commit()
 
+	def execute(self, script: str, commitOnCompletion: bool):
+		self.__execute(script, commitOnCompletion)
+
 	# public function for queries
-	cdef list executeQuery(self, query: str):
+	cdef list __executeQuery(self, query: str):
 		if not complete_statement(query):
 			self.log.error('executeQuery: incomplete sql statement')
 			return None
 		self.__queryCount += 1
 		return self.__cur.execute(query).fetchall()
 
+	def executeQuery(self, query: str):
+		return self.__executeQuery(query)
+
 	# returns a list of all files with specified extension
-	cdef list filesWithExtension(self, ext: (str, None)):
+	cdef list __filesWithExtension(self, ext: (str, None)):
 		self.__queryCount += 1
 		if ext is None:
 			return self.__cur.execute("SELECT * FROM files WHERE extension IS NULL").fetchall()
 		else:
 			return self.__cur.execute("SELECT * FROM files WHERE extension = :ext", {"ext": ext}).fetchall()
+	def filesWithExtension(self, ext: (str, None)):
+		return self.__filesWithExtension(ext)
 
 	# removes a folder from the database
-	cdef removeFolder(self, folder: str, cleanup: bool):
+	cdef __removeFolder(self, folder: str, cleanup: bool):
 		self.log.info("getting index for folder...")
 		index = self.__getFolderIndex(folder)
 
@@ -313,9 +333,12 @@ cdef class databaseManager:
 			self.log.info("vacuuming...")
 			self.__vacuum()
 
+	def removeFolder(self, folder: str, cleanup: bool):
+		self.__removeFolder(folder, cleanup)
+
 	# counts the number of items inside the folder and all subfolders.
 	# TODO rewrite this function to make use of recursion
-	cdef int countItems(self, folder: str):
+	cdef int __countItems(self, folder: str):
 		index = self.__getFolderIndex(folder)
 		total = 0
 		self.__queryCount += 1
@@ -332,8 +355,11 @@ cdef class databaseManager:
 		children.clear()
 		return total
 
+	def countItems(self, folder: str):
+		return self.__countItems(folder)
+
 	# makes a copy of all folders and subfolders into refFolder
-	cdef recreateFolderStructure(self, outFolder: str, refFolder: str):
+	cdef __recreateFolderStructure(self, outFolder: str, refFolder: str):
 		# get basename and append to reference directory
 		b = self.__cur.execute("SELECT basename FROM folders WHERE folder_path =:path", {"path": refFolder}).fetchall()
 		self.__queryCount += 1
@@ -358,10 +384,13 @@ cdef class databaseManager:
 		childDirs = self.__cur.execute("SELECT folder_path FROM folders WHERE rowid IN(%s)" % children).fetchall()
 		for child in childDirs:
 			(direc, *drop) = child
-			self.recreateFolderStructure(target, direc)
+			self.__recreateFolderStructure(target, direc)
+
+	def recreateFolderStructure(self, outFolder: str, refFolder: str):
+		self.__recreateFolderStructure(outFolder, refFolder)
 
 	# similar to recreateFolderStructure but creates empty files as well.
-	cdef recreateFileStructure(self, outFolder, refFolder):
+	cdef __recreateFileStructure(self, outFolder, refFolder):
 		# get basename and append to target directory
 		b = self.__cur.execute("SELECT basename FROM folders WHERE folder_path =:path", {"path": refFolder}).fetchall()
 		self.__queryCount += 1
@@ -399,30 +428,43 @@ cdef class databaseManager:
 		childDirs = self.__cur.execute("SELECT folder_path FROM folders WHERE rowid IN(%s)" % children).fetchall()
 		for child in childDirs:
 			(direc, *drop) = child
-			self.recreateFileStructure(target, direc)
+			self.__recreateFileStructure(target, direc)
+
+	def recreateFileStructure(self, outFolder, refFolder):
+		self.__recreateFileStructure(outFolder, refFolder)
 
 	# can be used to test private functions externally
-	cdef testFunction(self):
+	def testFunction(self):
 		pass
 
-	cdef vacuum(self):
+	def vacuum(self):
 		self.__vacuum()
 
-	cdef reportDbStats(self):
+	#TODO determine if this was intended to be unprotected
+	cdef __reportDbStats(self):
 		self.log.info("Queries: %s Updates: %s", str(self.__queryCount), str(self.__updateCount))
 
-	cdef resetDbStats(self):
+	def reportDbStats(self):
+		self.__reportDbStats()
+
+	cdef __resetDbStats(self):
 		self.__queryCount = 0
 		self.__updateCount = 0
 
-	cdef int AvgFileSize(self, folder: str):
+	def resetDbStats(self):
+		self.__resetDbStats()
+
+	cdef int __AvgFileSize(self, folder: str):
 		folders = self.__getChildDirectories([self.__getFolderIndex(folder)], True)
 		response = self.__cur.execute(
 			"SELECT AVG(size) FROM files WHERE parent IN(%s)" % self.__formatInQuery(folders)).fetchall()
 		(average, *drop) = response[0]
 		return average
 
-	cdef int MedianFileSize(self, folder: str):
+	def AvgFileSize(self, folder: str):
+		return self.__AvgFileSize(folder)
+
+	cdef int __MedianFileSize(self, folder: str):
 		folders = self.__getChildDirectories([self.__getFolderIndex(folder)], True)
 		response = self.__cur.execute(
 			"SELECT size FROM files WHERE parent IN(%s)" % self.__formatInQuery(folders)).fetchall()
@@ -431,3 +473,6 @@ cdef class databaseManager:
 			(size, *drop) = r
 			responses.append(size)
 		return np.median(responses)
+
+	def MedianFileSize(self, folder: str):
+		return self.__MedianFileSize(folder)
