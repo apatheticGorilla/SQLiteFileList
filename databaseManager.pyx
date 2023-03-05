@@ -342,14 +342,14 @@ cdef class databaseManager:
 		index = self.__getFolderIndex(folder)
 		total = 0
 		self.__queryCount += 1
-		c = self.__cur.execute("SELECT COUNT(file_id) FROM files WHERE parent=:index", {"index": index}).fetchall()
+		c = self.__cur.execute("SELECT COUNT(rowid) FROM files WHERE parent=:index", {"index": index}).fetchall()
 		(count, *drop) = c[0]
 		total += count
 
 		children = self.__getChildDirectories([index], True)
 		query = self.__formatInQuery(children)
 		self.__queryCount += 1
-		c = self.__cur.execute("SELECT COUNT(file_id) FROM files WHERE parent IN(%s)" % query).fetchall()
+		c = self.__cur.execute("SELECT COUNT(rowid) FROM files WHERE parent IN(%s)" % query).fetchall()
 		(count, *drop) = c[0]
 		total += count + len(children)
 		children.clear()
