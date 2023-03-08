@@ -7,3 +7,4 @@ __pycache__
 *.pyd
 *.so
 *.html
+/venv/pyvenv.cfg
