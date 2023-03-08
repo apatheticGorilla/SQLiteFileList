@@ -1,5 +1,6 @@
 /.idea/dictionaries/
 __pycache__
+/venv/
 /build/
 /cython_debug/
 *.c
@@ -7,4 +8,3 @@ __pycache__
 *.pyd
 *.so
 *.html
-/venv/pyvenv.cfg
