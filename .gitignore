@@ -1,8 +1,10 @@
 /.idea/dictionaries/
 __pycache__
 /venv/
+/build/
+/cython_debug/
 *.c
 *.obj
 *.pyd
 *.so
-/build/
+*.html
