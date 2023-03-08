@@ -1,6 +1,5 @@
 /.idea/dictionaries/
 __pycache__
-/venv/
 /build/
 /cython_debug/
 *.c
