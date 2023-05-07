@@ -1,5 +1,5 @@
 import os.path as path
-
+import platform
 import databaseManager
 import util
 
@@ -14,18 +14,19 @@ def time_convert(sec):
 	print("Time Lapsed = {0}:{1}:{2}".format(int(hours), int(mins), sec))
 
 
-# db = databaseManager.databaseManager('C:\\Temp\\files.db', "C:\\Temp\\databaseManager.log")
-home = path.expanduser("~")
-dbFolder = path.join(home, 'Documents/SQLiteDatabase')
-db = databaseManager.databaseManager(path.join(dbFolder, 'files.db'), path.join(dbFolder, 'logs/databaseManager.log'))
-drives = ["C:\\", "D:\\", "F:\\", 'G:\\', 'E:\\']
-# db.createDatabase()
+db = None
 timer = Timer.Timer()
 timer.startTime()
-# db.updateDataBase(drives, 0)
-db.updateDataBase(['/'], 0)
-print(time_convert(timer.stopTime()))
-
-# util.writeTFLList("C:\\temp\\cabfiles.tfl", "extension = '.jar' ORDER BY size DESC")
-# db.execute("""DELETE FROM files WHERE file_path LIKE 'Z:\\%';
-# 			DELETE FROM folders WHERE folder_path LIKE 'Z:\\%';""", True)
+if platform.system() == 'Linux':
+	home = path.expanduser("~")
+	dbFolder = path.join(home, 'Documents/SQLiteDatabase')
+	db = databaseManager.databaseManager(path.join(dbFolder, 'files.db'), path.join(dbFolder, 'logs/DatabaseManager.log'))
+	db.updateDatabase(['/'], 0)
+elif platform.system() == 'Windows':
+	drives = ["C:\\", "D:\\", "F:\\", 'G:\\', 'E:\\']
+	db = databaseManager.databaseManager('C:\\Temp\\files.db', "C:\\Temp\\DatabaseManager.log")
+	db.updateDataBase(drives, 0)
+else:
+	print('Unknown OS: ' + platform.system())
+time_convert(timer.stopTime())
+# db.createDatabase()
