@@ -376,7 +376,6 @@ cdef class databaseManager:
 			mkdir(target)
 		except FileNotFoundError:
 			self.log.warning('failed to make directory: %s' % refFolder)
-		# print('you should not see this: %s' % refFolder)
 
 		index = self.__getFolderIndex(refFolder)
 		children = self.__formatInQuery(self.__getChildDirectories([index], False))
@@ -407,7 +406,6 @@ cdef class databaseManager:
 			mkdir(target)
 		except FileNotFoundError:
 			self.log.warning('failed to make directory: %s' % refFolder)
-			pass
 
 		# get files in folder, if any
 		index = self.__getFolderIndex(refFolder)
@@ -435,13 +433,13 @@ cdef class databaseManager:
 		self.__recreateFileStructure(outFolder, refFolder)
 
 	# can be used to test private functions externally
+	# NOTE: any changes to this function should not be committed!
 	def testFunction(self):
 		pass
 
 	def vacuum(self):
 		self.__vacuum()
 
-	#TODO determine if this was intended to be unprotected
 	cdef __reportDbStats(self):
 		self.log.info("Queries: %s Updates: %s", str(self.__queryCount), str(self.__updateCount))
 
