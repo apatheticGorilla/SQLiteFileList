@@ -24,7 +24,7 @@ if platform.system() == 'Linux':
 elif platform.system() == 'Windows':
 	# drives = ["C:\\", "D:\\", "F:\\", 'G:\\', 'E:\\']
 	drives = []
-	# yes, this is bad, but I don't know what will happen if I attempt to use pywin on linux
+	# yes, this is bad, but I don't know what will happen if I attempt to use win32api on linux
 	import win32api
 
 	drives = win32api.GetLogicalDriveStrings()
