@@ -225,12 +225,15 @@ cdef class databaseManager:
 
 		for Path in paths:
 			# add folder and get its index
-			self.__updateCount += 1
-			self.__cur.execute("INSERT INTO folders (basename, folder_path)VALUES(?,?);", (Path, Path))
-			self.log.info('scanning %s', Path)
+			if path.exists(Path):
+				self.__updateCount += 1
+				self.__cur.execute("INSERT INTO folders (basename, folder_path)VALUES(?,?);", (Path, Path))
+				self.log.info('scanning %s', Path)
 
-			self.__scan(Path, self.__getFolderIndex(Path))
-			assert self.__currentdepth == 0
+				self.__scan(Path, self.__getFolderIndex(Path))
+				assert self.__currentdepth == 0
+			else:
+				self.log.error("Could not find folder '%s'", Path)
 
 		self.__con.commit()
 		self.__createIndex()
