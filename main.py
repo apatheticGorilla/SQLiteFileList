@@ -2,7 +2,6 @@ import os.path as path
 import platform
 import databaseManager
 import util
-
 import Timer
 
 
@@ -23,7 +22,13 @@ if platform.system() == 'Linux':
 	db = databaseManager.databaseManager(path.join(dbFolder, 'files.db'), path.join(dbFolder, 'logs/DatabaseManager.log'))
 	db.updateDatabase(['/'], 0)
 elif platform.system() == 'Windows':
-	drives = ["C:\\", "D:\\", "F:\\", 'G:\\', 'E:\\']
+	# drives = ["C:\\", "D:\\", "F:\\", 'G:\\', 'E:\\']
+	drives = []
+	# yes, this is bad, but I don't know what will happen if I attempt to use pywin on linux
+	import win32api
+
+	drives = win32api.GetLogicalDriveStrings()
+	drives = drives.split('\000')[:-1]
 	db = databaseManager.databaseManager('C:\\Temp\\files.db', "C:\\Temp\\DatabaseManager.log")
 	db.updateDatabase(drives, 0)
 else:
