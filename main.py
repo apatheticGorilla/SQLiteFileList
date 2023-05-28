@@ -25,7 +25,7 @@ if platform.system() == 'Linux':
 elif platform.system() == 'Windows':
 	drives = ["C:\\", "D:\\", "F:\\", 'G:\\', 'E:\\']
 	db = databaseManager.databaseManager('C:\\Temp\\files.db', "C:\\Temp\\DatabaseManager.log")
-	db.updateDataBase(drives, 0)
+	db.updateDatabase(drives, 0)
 else:
 	print('Unknown OS: ' + platform.system())
 time_convert(timer.stopTime())
