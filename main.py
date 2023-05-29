@@ -23,7 +23,6 @@ if platform.system() == 'Linux':
 	db.updateDatabase(['/'], 0)
 elif platform.system() == 'Windows':
 	# drives = ["C:\\", "D:\\", "F:\\", 'G:\\', 'E:\\']
-	drives = []
 	# yes, this is bad, but I don't know what will happen if I attempt to use win32api on linux
 	import win32api
 
