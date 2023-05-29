@@ -211,6 +211,9 @@ cdef class databaseManager:
 		self.__con.commit()
 
 	def createDatabase(self):
+		"""
+		Creates the database tables
+		"""
 		self.__createDatabase()
 
 	# Clears database and scans selected folders.
@@ -242,6 +245,11 @@ cdef class databaseManager:
 		self.__reportDbStats()
 
 	def updateDatabase(self, paths: List[str], maxSearchDepth):
+		"""
+		Clears the database and then scans and adds all files and folders in the given folder paths.
+		:param paths: List of folders to scan.
+		:param maxSearchDepth: The maximum recursion depth when scanning folders.
+		"""
 		self.__updateDataBase(paths, maxSearchDepth)
 
 	# used in __scan to get the index of every directory it's added for the next
@@ -271,6 +279,11 @@ cdef class databaseManager:
 		self.__con.commit()
 
 	def addFolder(self, Path: str, maxSearchDepth: int):
+		"""
+		Adds a folder to the database.
+		:param Path: the file path of the folder to add.
+		:param maxSearchDepth: The maximum recursion depth when scanning folders.
+		"""
 		self.__addFolder(Path, maxSearchDepth)
 
 	# adds multiple folders without deleting the database
@@ -279,6 +292,11 @@ cdef class databaseManager:
 			self.__addFolder(Path, maxSearchDepth)
 
 	def addFolders(self, paths: List[str], maxSearchDepth: int):
+		"""
+		Adds multiple folders to the database in bulk.
+		:param paths: A List of file paths.
+		:param maxSearchDepth: The maximum recursion depth when scanning folders.
+		"""
 		self.__addFolders(paths, maxSearchDepth)
 
 	# for use outside this class to execute inserts/deletions
@@ -292,6 +310,11 @@ cdef class databaseManager:
 			self.__con.commit()
 
 	def execute(self, script: str, commitOnCompletion: bool):
+		"""
+		Executes an SQLite script on the database. This does not return anything, for queries use executeQuery().
+		:param script: The SQLite script to execute.
+		:param commitOnCompletion: whether to commit after running the script.
+		"""
 		self.__execute(script, commitOnCompletion)
 
 	# public function for queries
@@ -303,6 +326,11 @@ cdef class databaseManager:
 		return self.__cur.execute(query).fetchall()
 
 	def executeQuery(self, query: str):
+		"""
+		Used to query the database outside of this class.
+		:param query: The SQLite query.
+		:return: The query results.
+		"""
 		return self.__executeQuery(query)
 
 	# returns a list of all files with specified extension
@@ -312,7 +340,13 @@ cdef class databaseManager:
 			return self.__cur.execute("SELECT * FROM files WHERE extension IS NULL").fetchall()
 		else:
 			return self.__cur.execute("SELECT * FROM files WHERE extension = :ext", {"ext": ext}).fetchall()
+
 	def filesWithExtension(self, ext: (str, None)):
+		"""
+		searches database for all files with the given file extension.
+		:param ext: The file extension such as ".txt" or None for files with no extension.
+		:return: A list of tuples for matching database records.
+		"""
 		return self.__filesWithExtension(ext)
 
 	# removes a folder from the database
@@ -338,6 +372,11 @@ cdef class databaseManager:
 			self.__vacuum()
 
 	def removeFolder(self, folder: str, cleanup: bool):
+		"""
+		Removes a folder and all of its children from the database.
+		:param folder: The file path of the folder to remove.
+		:param cleanup: whether to run vacuum() after completion.
+		"""
 		self.__removeFolder(folder, cleanup)
 
 	# counts the number of items inside the folder and all subfolders.
@@ -360,6 +399,11 @@ cdef class databaseManager:
 		return total
 
 	def countItems(self, folder: str):
+		"""
+		counts all the files and folders in a given folder based on what's stored in the database.
+		:param folder: The folder to count from.
+		:return: The number of items in the folder.
+		"""
 		return self.__countItems(folder)
 
 	# makes a copy of all folders and subfolders into refFolder
@@ -390,6 +434,11 @@ cdef class databaseManager:
 			self.__recreateFolderStructure(target, direc)
 
 	def recreateFolderStructure(self, outFolder: str, refFolder: str):
+		"""
+		Finds all subfolders inside the reference folder and writes the structure to the output folder.
+		:param outFolder: The file path that the structure is written to.
+		:param refFolder: The folder to mimic the structure of.
+		"""
 		self.__recreateFolderStructure(outFolder, refFolder)
 
 	# similar to recreateFolderStructure but creates empty files as well.
@@ -433,6 +482,11 @@ cdef class databaseManager:
 			self.__recreateFileStructure(target, direc)
 
 	def recreateFileStructure(self, outFolder, refFolder):
+		"""
+		Finds all files subfolders inside the reference folder and writes the structure to the output folder using empty files.
+		:param outFolder: The file path that the structure is written to.
+		:param refFolder: The folder to mimic the structure of.
+		"""
 		self.__recreateFileStructure(outFolder, refFolder)
 
 	# can be used to test private functions externally
@@ -441,12 +495,18 @@ cdef class databaseManager:
 		pass
 
 	def vacuum(self):
+		"""
+		Runs vacuum command on the database.
+		"""
 		self.__vacuum()
 
 	cdef __reportDbStats(self):
 		self.log.info("Queries: %s Updates: %s", str(self.__queryCount), str(self.__updateCount))
 
 	def reportDbStats(self):
+		"""
+		Logs database statistics to the info channel
+		"""
 		self.__reportDbStats()
 
 	cdef __resetDbStats(self):
@@ -454,6 +514,9 @@ cdef class databaseManager:
 		self.__updateCount = 0
 
 	def resetDbStats(self):
+		"""
+		Resets the queryCount and UpdateCount to 0
+		"""
 		self.__resetDbStats()
 
 	cdef int __AvgFileSize(self, folder: str):
@@ -464,6 +527,11 @@ cdef class databaseManager:
 		return average
 
 	def AvgFileSize(self, folder: str):
+		"""
+		Calculates the average size of the files in the given folder.
+		:param folder: The folder to calculate.
+		:return: The average size of the files.
+		"""
 		return self.__AvgFileSize(folder)
 
 	cdef int __MedianFileSize(self, folder: str):
@@ -477,4 +545,9 @@ cdef class databaseManager:
 		return np.median(responses)
 
 	def MedianFileSize(self, folder: str):
+		"""
+		Calculates the median size of the files in the given folder.
+		:param folder: The folder to calculate.
+		:return: The median file size.
+		"""
 		return self.__MedianFileSize(folder)
