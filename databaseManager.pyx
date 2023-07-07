@@ -47,7 +47,7 @@ cdef class databaseManager:
 		self.__cur = self.__con.cursor()
 		self.__queryCount = 0
 		self.__updateCount = 0
-		self.__currentdepth = 0
+		self.__currentDepth = 0
 		self.__maxDepth = -1
 
 		# create database if it doesn't exist already
@@ -82,9 +82,9 @@ cdef class databaseManager:
 
 	# used to recursively scan a selected folder
 	cdef __scan(self, Path: str, parent: (int, None)):
-		self.__currentdepth += 1
-		if 0 < self.__maxDepth <= self.__currentdepth:
-			self.__currentdepth -= 1
+		self.__currentDepth += 1
+		if 0 < self.__maxDepth <= self.__currentDepth:
+			self.__currentDepth -= 1
 			self.log.debug('exceeded maximum depth on folder: %s', Path)
 			return
 
@@ -125,20 +125,20 @@ cdef class databaseManager:
 			except PermissionError:
 				# we must subtract the current depth when these exceptions are thrown
 				# because it did not reach the end
-				self.__currentdepth -= 1
+				self.__currentDepth -= 1
 				self.log.warning("permission denied: %s", directory)
 
 			except FileNotFoundError:
-				self.__currentdepth -= 1
+				self.__currentDepth -= 1
 				self.log.warning("could not find: %s", directory)
 
 			except OSError:
-				self.__currentdepth -= 1
+				self.__currentDepth -= 1
 				self.log.warning("OS error on: %s", directory)
 
 		directories.clear()
-		self.__currentdepth -= 1
-		assert self.__currentdepth >= 0
+		self.__currentDepth -= 1
+		assert self.__currentDepth >= 0
 
 	cdef str __getFolderIndex(self, Path: str):
 		try:
@@ -234,7 +234,7 @@ cdef class databaseManager:
 				self.log.info('scanning %s', Path)
 
 				self.__scan(Path, self.__getFolderIndex(Path))
-				assert self.__currentdepth == 0
+				assert self.__currentDepth == 0
 			else:
 				self.log.error("Could not find folder '%s'", Path)
 
