@@ -15,8 +15,8 @@ cdef class databaseManager:
 	cdef __cur
 	cdef int __queryCount
 	cdef int __updateCount
-	cdef int __currentdepth
-	cdef int __maxdepth
+	cdef int __currentDepth
+	cdef int __maxDepth
 	def __init__(self, Path: str, logPath: str):
 		# rename old log if found
 		if path.exists(logPath):
@@ -48,7 +48,7 @@ cdef class databaseManager:
 		self.__queryCount = 0
 		self.__updateCount = 0
 		self.__currentdepth = 0
-		self.__maxdepth = -1
+		self.__maxDepth = -1
 
 		# create database if it doesn't exist already
 		if not dbExists:
@@ -83,7 +83,7 @@ cdef class databaseManager:
 	# used to recursively scan a selected folder
 	cdef __scan(self, Path: str, parent: (int, None)):
 		self.__currentdepth += 1
-		if 0 < self.__maxdepth <= self.__currentdepth:
+		if 0 < self.__maxDepth <= self.__currentdepth:
 			self.__currentdepth -= 1
 			self.log.debug('exceeded maximum depth on folder: %s', Path)
 			return
@@ -218,7 +218,7 @@ cdef class databaseManager:
 
 	# Clears database and scans selected folders.
 	cdef __updateDataBase(self, paths: List[str], maxSearchDepth):
-		self.__maxdepth = maxSearchDepth
+		self.__maxDepth = maxSearchDepth
 		self.log.info('Deleting data')
 		self.__cur.executescript("""
 			DELETE FROM files;
@@ -269,7 +269,7 @@ cdef class databaseManager:
 	# adds a folder without deleting the database
 	# TODO implement check to see if path already exists
 	cdef __addFolder(self, Path: str, maxSearchDepth: int):
-		self.__maxdepth = maxSearchDepth
+		self.__maxDepth = maxSearchDepth
 		name = path.basename(Path)
 		data = [(name, Path, self.__getFolderIndex(path.dirname(Path)))]
 
