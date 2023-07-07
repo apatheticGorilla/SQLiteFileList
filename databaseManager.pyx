@@ -379,7 +379,7 @@ cdef class databaseManager:
 		"""
 		self.__removeFolder(folder, cleanup)
 
-	# counts the number of items inside the folder and all subfolders.
+	# counts the number of items inside the folder and all sub-folders.
 	# TODO rewrite this function to make use of recursion
 	cdef int __countItems(self, folder: str):
 		index = self.__getFolderIndex(folder)
@@ -406,7 +406,7 @@ cdef class databaseManager:
 		"""
 		return self.__countItems(folder)
 
-	# makes a copy of all folders and subfolders into refFolder
+	# makes a copy of all folders and sub-folders into refFolder
 	cdef __recreateFolderStructure(self, outFolder: str, refFolder: str):
 		# get basename and append to reference directory
 		b = self.__cur.execute("SELECT basename FROM folders WHERE folder_path =:path", {"path": refFolder}).fetchall()
@@ -435,7 +435,7 @@ cdef class databaseManager:
 
 	def recreateFolderStructure(self, outFolder: str, refFolder: str):
 		"""
-		Finds all subfolders inside the reference folder and writes the structure to the output folder.
+		Finds all sub-folders inside the reference folder and writes the structure to the output folder.
 		:param outFolder: The file path that the structure is written to.
 		:param refFolder: The folder to mimic the structure of.
 		"""
@@ -483,7 +483,7 @@ cdef class databaseManager:
 
 	def recreateFileStructure(self, outFolder, refFolder):
 		"""
-		Finds all files subfolders inside the reference folder and writes the structure to the output folder using empty files.
+		Finds all files sub-folders inside the reference folder and writes the structure to the output folder using empty files.
 		:param outFolder: The file path that the structure is written to.
 		:param refFolder: The folder to mimic the structure of.
 		"""
