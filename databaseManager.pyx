@@ -4,7 +4,7 @@ from datetime import datetime
 from os import listdir, path, mkdir
 from sqlite3 import connect, OperationalError, complete_statement
 # noinspection PyMethodMayBeStatic
-from typing import Dict, List
+from typing import List
 import numpy as np
 cimport cython
 
