@@ -22,8 +22,7 @@ if platform.system() == 'Linux':
 	db = databaseManager.databaseManager(path.join(dbFolder, 'files.db'), path.join(dbFolder, 'logs/DatabaseManager.log'))
 	db.updateDatabase(['/'], 0)
 elif platform.system() == 'Windows':
-	# drives = ["C:\\", "D:\\", "F:\\", 'G:\\', 'E:\\']
-	# yes, this is bad, but I don't know what will happen if I attempt to use win32api on linux
+	# Import win32api here because it's only available on windows.
 	import win32api
 
 	drives = win32api.GetLogicalDriveStrings()
@@ -33,4 +32,3 @@ elif platform.system() == 'Windows':
 else:
 	print('Unknown OS: ' + platform.system())
 time_convert(timer.stopTime())
-# db.createDatabase()
