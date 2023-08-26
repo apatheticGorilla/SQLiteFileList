@@ -22,7 +22,8 @@ if platform.system() == 'Linux':
 	db = databaseManager.databaseManager(path.join(dbFolder, 'files.db'), path.join(dbFolder, 'logs/DatabaseManager.log'))
 	db.updateDatabase(['/'], 0)
 elif platform.system() == 'Windows':
-	# Import win32api here because it's only available on windows.
+	# drives = ["C:\\", "D:\\", "F:\\", 'G:\\', 'E:\\']
+	# yes, this is bad, but this package cannot be installed on any other os, so it can't be imported elsewhere
 	import win32api
 
 	drives = win32api.GetLogicalDriveStrings()
@@ -32,3 +33,4 @@ elif platform.system() == 'Windows':
 else:
 	print('Unknown OS: ' + platform.system())
 time_convert(timer.stopTime())
+# db.createDatabase()
