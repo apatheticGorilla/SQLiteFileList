@@ -267,7 +267,6 @@ cdef class databaseManager:
 		return indexes
 
 	# adds a folder without deleting the database
-	# TODO implement check to see if path already exists
 	cdef __addFolder(self, Path: str, maxSearchDepth: int):
 		# check if folder is in database
 		response = self.__cur.execute("SELECT rowid FROM folders WHERE folder_path=:filepath;", {"filepath": Path}).fetchall()
