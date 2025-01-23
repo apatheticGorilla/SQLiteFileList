@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from os import listdir, path, mkdir
 from sqlite3 import connect, OperationalError, complete_statement
+import platform
 # noinspection PyMethodMayBeStatic
 from typing import List
 import numpy as np
@@ -385,7 +386,6 @@ cdef class databaseManager:
 		self.__removeFolder(folder, cleanup)
 
 	# counts the number of items inside the folder and all sub-folders.
-	# TODO rewrite this function to make use of recursion
 	cdef int __countItems(self, folder: str):
 		index = self.__getFolderIndex(folder)
 		total = 0
@@ -447,44 +447,69 @@ cdef class databaseManager:
 		self.__recreateFolderStructure(outFolder, refFolder)
 
 	# similar to recreateFolderStructure but creates empty files as well.
-	cdef __recreateFileStructure(self, outFolder, refFolder):
-		# get basename and append to target directory
-		b = self.__cur.execute("SELECT basename FROM folders WHERE folder_path =:path", {"path": refFolder}).fetchall()
-		self.__queryCount += 1
-		(basename, *d) = b[0]
-		cleanOutput = basename.replace(":", "")
-		# edge case for linux root
-		if refFolder == '/':
-			target = path.join(outFolder, 'root')
-		else:
-			target = path.join(outFolder, cleanOutput)
-
-		try:
-			mkdir(target)
-		except FileNotFoundError:
-			self.log.warning('failed to make directory: %s' % refFolder)
-
-		# get files in folder, if any
-		index = self.__getFolderIndex(refFolder)
-		# create empty file where it would be
-		if index is not None:
+	"""cdef __recreateFileStructure(self, outFolder, refFolder):
+			# get basename and append to target directory
+			b = self.__cur.execute("SELECT basename FROM folders WHERE folder_path =:path", {"path": refFolder}).fetchall()
 			self.__queryCount += 1
-			files = self.__cur.execute("SELECT basename FROM files WHERE parent = :index", {"index": index}).fetchall()
-			for f in files:
-				(file, *drop) = f
-				pth = path.join(target, file)
-				try:
-					open(pth, 'x')
-				except FileNotFoundError:
-					self.log.warning('Failed to create file: %s', pth)
+			(basename, *d) = b[0]
+			cleanOutput = basename.replace(":", "")
+			# edge case for linux root
+			if refFolder == '/':
+				target = path.join(outFolder, 'root')
+			else:
+				target = path.join(outFolder, cleanOutput)
 
-		# get all folders and recursively create structure
-		children = self.__formatInQuery(self.__getChildDirectories([index], False))
+			try:
+				mkdir(target)
+			except FileNotFoundError:
+				self.log.warning('failed to make directory: %s' % refFolder)
+
+			# get files in folder, if any
+			index = self.__getFolderIndex(refFolder)
+			# create empty file where it would be
+			if index is not None:
+				self.__queryCount += 1
+				files = self.__cur.execute("SELECT basename FROM files WHERE parent = :index", {"index": index}).fetchall()
+				for f in files:
+					(file, *drop) = f
+					pth = path.join(target, file)
+					try:
+						open(pth, 'x')
+					except FileNotFoundError:
+						self.log.warning('Failed to create file: %s', pth)
+
+			# get all folders and recursively create structure
+			children = self.__formatInQuery(self.__getChildDirectories([index], False))
+			self.__queryCount += 1
+			childDirs = self.__cur.execute("SELECT folder_path FROM folders WHERE rowid IN(%s)" % children).fetchall()
+			for child in childDirs:
+				(direc, *drop) = child
+				self.__recreateFileStructure(target, direc)
+				"""
+	# similar to recreateFolderStructure but creates empty files as well.
+	cdef __recreateFileStructure(self, outFolder: str, refFolder: str):
+		# create folder structure
+		self.__recreateFolderStructure(outFolder, refFolder)
+
+		# get paths for files
+		subfolders = self.__getChildDirectories([self.__getFolderIndex(refFolder)], True)
+		files = self.__cur.execute("SELECT file_path FROM files WHERE parent IN(%s)" % self.__formatInQuery(subfolders)).fetchall()
 		self.__queryCount += 1
-		childDirs = self.__cur.execute("SELECT folder_path FROM folders WHERE rowid IN(%s)" % children).fetchall()
-		for child in childDirs:
-			(direc, *drop) = child
-			self.__recreateFileStructure(target, direc)
+
+		# TODO add string operations for linux
+		replacement = ""
+		if platform.system() == "Windows":
+			replacement = path.join(outFolder, refFolder[refFolder.rindex("\\")+1:])
+
+		# write files
+		for file in files:
+			(f, *drop) = file
+			try:
+				open(f.replace(refFolder, replacement), "x")
+			except FileNotFoundError:
+				self.log.warning("Failed to create file %s", f.replace(refFolder, replacement))
+
+
 
 	def recreateFileStructure(self, outFolder, refFolder):
 		"""
