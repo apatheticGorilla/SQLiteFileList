@@ -14,13 +14,15 @@ def time_convert(sec):
 
 
 db = None
+skipUpdate = False
 timer = Timer.Timer()
 timer.startTime()
 if platform.system() == 'Linux':
 	home = path.expanduser("~")
 	dbFolder = path.join(home, 'Documents/SQLiteDatabase')
 	db = databaseManager.databaseManager(path.join(dbFolder, 'files.db'), path.join(dbFolder, 'logs/DatabaseManager.log'))
-	db.updateDatabase(['/'], 0)
+	if not skipUpdate:
+		db.updateDatabase(['/'], 0)
 elif platform.system() == 'Windows':
 	# drives = ["C:\\", "D:\\", "F:\\", 'G:\\', 'E:\\']
 	# yes, this is bad, but this package cannot be installed on any other os, so it can't be imported elsewhere
@@ -29,7 +31,8 @@ elif platform.system() == 'Windows':
 	drives = win32api.GetLogicalDriveStrings()
 	drives = drives.split('\000')[:-1]
 	db = databaseManager.databaseManager('C:\\Temp\\files.db', "C:\\Temp\\DatabaseManager.log")
-	db.updateDatabase(drives, 0)
+	if not skipUpdate:
+		db.updateDatabase(drives, 0)
 else:
 	print('Unknown OS: ' + platform.system())
 time_convert(timer.stopTime())
