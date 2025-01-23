@@ -447,46 +447,6 @@ cdef class databaseManager:
 		self.__recreateFolderStructure(outFolder, refFolder)
 
 	# similar to recreateFolderStructure but creates empty files as well.
-	"""cdef __recreateFileStructure(self, outFolder, refFolder):
-			# get basename and append to target directory
-			b = self.__cur.execute("SELECT basename FROM folders WHERE folder_path =:path", {"path": refFolder}).fetchall()
-			self.__queryCount += 1
-			(basename, *d) = b[0]
-			cleanOutput = basename.replace(":", "")
-			# edge case for linux root
-			if refFolder == '/':
-				target = path.join(outFolder, 'root')
-			else:
-				target = path.join(outFolder, cleanOutput)
-
-			try:
-				mkdir(target)
-			except FileNotFoundError:
-				self.log.warning('failed to make directory: %s' % refFolder)
-
-			# get files in folder, if any
-			index = self.__getFolderIndex(refFolder)
-			# create empty file where it would be
-			if index is not None:
-				self.__queryCount += 1
-				files = self.__cur.execute("SELECT basename FROM files WHERE parent = :index", {"index": index}).fetchall()
-				for f in files:
-					(file, *drop) = f
-					pth = path.join(target, file)
-					try:
-						open(pth, 'x')
-					except FileNotFoundError:
-						self.log.warning('Failed to create file: %s', pth)
-
-			# get all folders and recursively create structure
-			children = self.__formatInQuery(self.__getChildDirectories([index], False))
-			self.__queryCount += 1
-			childDirs = self.__cur.execute("SELECT folder_path FROM folders WHERE rowid IN(%s)" % children).fetchall()
-			for child in childDirs:
-				(direc, *drop) = child
-				self.__recreateFileStructure(target, direc)
-				"""
-	# similar to recreateFolderStructure but creates empty files as well.
 	cdef __recreateFileStructure(self, outFolder: str, refFolder: str):
 		# create folder structure
 		self.__recreateFolderStructure(outFolder, refFolder)
